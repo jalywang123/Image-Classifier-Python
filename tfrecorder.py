@@ -8,8 +8,8 @@ for s in range(40):
 	print("")
     
 #first thing we do is create a large list with all of the paths for the training files
-filenames=["./data_dog/%08d.png"%(i) for i in range(1,51)]
-filenames.extend(["./data_cat/%08d.png"%(k) for k in range(1,51)])
+filenames=["./data_dog/%08d.png"%(i) for i in range(1,251)]
+filenames.extend(["./data_cat/%08d.png"%(k) for k in range(1,251)])
 
 #Function that will be used to Bynarize our data
 def _bytes_feature(value):
@@ -75,13 +75,13 @@ def read_and_decode(filename_queue):
     image=tf.cast(image,dtype=tf.float32)
     #Reshape it since it has no shape yet
     resized_image=tf.reshape(image,[85,128,1])
-    resized_label=tf.reshape(label,[1,2])
+    resized_label=tf.reshape(label,[2])
     
     #Creation of the batch
     #Batch of size 10 from 100 samples that are randomized
     images,labels=tf.train.shuffle_batch([resized_image,resized_label],
                                             batch_size=20,
-                                            capacity=100,
+                                            capacity=500,
                                             num_threads=4,
                                             min_after_dequeue=20
                                         )
