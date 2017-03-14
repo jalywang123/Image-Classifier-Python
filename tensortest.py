@@ -1,5 +1,5 @@
 import tensorflow as tf
-import cv2145
+import cv2
 #conversion of data for the model testing
 for i in range(1,51):
     dog="./dog/dog_%03d.png"%(i)
