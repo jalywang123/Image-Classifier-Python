@@ -72,8 +72,9 @@ def read_and_decode(filename_queue):
     #Decode it from Bytes(Raw information) to the suitable type
     image=tf.decode_raw(features['input'],tf.uint8)
     label=tf.decode_raw(features['label'],tf.float64)
+    image=tf.cast(image,dtype=tf.float32)
     #Reshape it since it has no shape yet
-    resized_image=tf.reshape(image,[85,128])
+    resized_image=tf.reshape(image,[85,128,1])
     resized_label=tf.reshape(label,[1,2])
     
     #Creation of the batch
@@ -112,6 +113,13 @@ with tf.Session() as sess :
         show3=tf.reshape(image[2,:,:],[85,128])
         show4=tf.reshape(image[3,:,:],[85,128])
         show5=tf.reshape(image[4,:,:],[85,128])
+
+        show=(tf.cast(show,dtype=tf.uint8))
+        show2=(tf.cast(show2,dtype=tf.uint8))
+        show3=(tf.cast(show3,dtype=tf.uint8))
+        show4=(tf.cast(show4,dtype=tf.uint8))
+        show5=(tf.cast(show5,dtype=tf.uint8))
+
         cv2.imshow("first image",show.eval())
         cv2.imshow("second image",show2.eval())
         cv2.imshow("third image",show3.eval())

@@ -7,11 +7,11 @@ import numpy as np
 #########################################
 #TO BE REMOVED BEFORE TRAINING THE MODEL#
 ######################################### 
-start = tf.constant('')
-set_start = tf.Session()
-print(set_start.run(start))
+# start = tf.constant('')
+# set_start = tf.Session()
+# print(set_start.run(start))
 
-for i in range(40):
+for i in range(10):
     print("\n")
 print("----------Tensorflow has been set----------")
 for i in range(5):
@@ -28,13 +28,18 @@ sess = tf.InteractiveSession()
 
 model_path="./weights/first_weights.ckpt"
 
-batch_size=300
+batch_size=10
 
 keep_probability=0.5
 
 model_information=False
 
+#Will give out some information of the tensorboard
+graph_information=False
+
 num_classes=2
+
+num_epochs=10
 
 #################################################
 #Function For data fetching from TFRecords files#
@@ -42,28 +47,49 @@ num_classes=2
 
 tfrecords_file="train.tfrecords"
 
+#Function for read and decode from a TFRecords File 
+def read_and_decode(filename_queue):
 
+    reader =tf.TFRecordReader()
+    _, serialized_data = reader.read(filename_queue)
+    
+    #Get the features from serialized data
+    features =tf.parse_single_example(
+                serialized_data,
+                features={
+                    'input':tf.FixedLenFeature([],tf.string),
+                    'label':tf.FixedLenFeature([],tf.string)
+                         })
+    #Decode it from Bytes(Raw information) to the suitable type
+    image=tf.decode_raw(features['input'],tf.uint8)
+    label=tf.decode_raw(features['label'],tf.float64)
+    image=tf.cast(image,dtype=tf.float32)
+    #Reshape it since it has no shape yet
+    resized_image=tf.reshape(image,[85,128,1])
+    resized_label=tf.reshape(label,[1,2])
+    
+    #Creation of the batch
+    #Batch of size 10 from 100 samples that are randomized
+    images,labels=tf.train.shuffle_batch([resized_image,resized_label],
+                                            batch_size=batch_size,
+                                            capacity=100,
+                                            num_threads=4,
+                                            min_after_dequeue=20
+                                        )
+    return images, labels
+    
+#Creation of a queue, working with 10 epochs so 10*100 images, an image will basically be shown 10 times
+filename_queue=tf.train.string_input_producer([tfrecords_file],num_epochs=num_epochs)
 
-
-
-
-
-
-
-
-
+#Get an image batch
+image_batch,label_batch=read_and_decode(filename_queue)
 
 ##########################################################
 #We get the segmented data that will be used for training#
 ##########################################################
 
 train_data=tf.placeholder(tf.float32,shape=[None,85,128,1])
-train_label=tf.placeholder(tf.float32,shape=[None,num_classes])
-
-# train_label=tf.to_float(tf.constant([[1.0,0.0,0.0]]))
-# train_data=tf.ones([85,128], tf.float32)
-# train_data = tf.reshape(train_data, [-1,85,128,1])
-
+train_label=tf.placeholder(tf.float32,shape=[None,1,num_classes])
 
 
 #####################################################################
@@ -250,7 +276,7 @@ cross_entropy=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=trai
 train_step=tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 
 #We count the number or correct predictions
-correct_prediction=tf.equal(tf.argmax(classification,1), tf.argmax(train_label,1))
+correct_prediction=tf.equal(tf.argmax(classification,1), tf.argmax(train_label,2))
 
 #We define our accuracy
 accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
@@ -259,7 +285,7 @@ accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 #TensordBoard Visualisation#
 ############################
 
-if(model_information):
+if(graph_information):
     cross_view=tf.summary.scalar("cross_entropy",cross_entropy)
 
     accuracy_view=tf.summary.scalar("accuracy",accuracy)
@@ -270,6 +296,7 @@ if(model_information):
     mixed_writer=tf.summary.FileWriter('./tensorboard',sess.graph)
 
 sess.run(tf.global_variables_initializer())
+sess.run(tf.local_variables_initializer())
 
 #For model saving and restoration
 saver=tf.train.Saver()
@@ -284,26 +311,39 @@ if(os.path.isfile(model_path+".meta")):
 else:
     print("")
     print("No model was found....")
+    
+#We run our batch coordinator
+coord=tf.train.Coordinator()
+threads=tf.train.start_queue_runners(coord=coord)
 
 
 ########################
 #RUN THE NEURAL NETWORK#
 ########################
-for i in range(10):
+for i in range(5):
 
-    train_step.run()
+    input_data_batch,input_label_batch=sess.run([image_batch,label_batch])
+    train_step.run(feed_dict = {train_data: input_data_batch,train_label: input_label_batch})
+    
     print(" ")
-    print("the value of cross entropy is : ",sess.run(cross_entropy))
-    print("the value given by the classifier before the softmax is ",sess.run(classification))
-    print("we have an accuracy of %d%%"%(100*sess.run(accuracy)))
+    print("the value of cross entropy is : ",sess.run(cross_entropy,feed_dict = {train_data: input_data_batch,train_label: input_label_batch}))
+    print("-----------------------------------------------------------")
+    print("the model yields for this batch predictions : ",sess.run(classification,feed_dict = {train_data: input_data_batch,train_label:input_label_batch}))
+    print("the model yields for this batch predictions : ",sess.run(classification,feed_dict = {train_data: input_data_batch,train_label:input_label_batch}))
+    print("the model yields a vector of correct predictions : ",sess.run(tf.argmax(train_label,2),feed_dict = {train_data: input_data_batch,train_label:input_label_batch}))
+    print("the ground truth for this batch is : ",label_batch.eval())
+    print("-------------------------------------------------------------")
+    
+    print("we have an accuracy of %d%%"%(100*sess.run(accuracy,feed_dict = {train_data: input_data_batch,train_label: input_label_batch})))
     print("we called the model %d times"%(i))
+    print(" ")
     
     if(model_information):
         summary=sess.run(merged)
-    
         mixed_writer.add_summary(summary,i)
     
-
+coord.request_stop()
+coord.join(threads)
 #########################################
 #We save the best snapchat of the model #
 #########################################
