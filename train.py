@@ -7,15 +7,6 @@ import numpy as np
 #########################################
 #TO BE REMOVED BEFORE TRAINING THE MODEL#
 ######################################### 
-# start = tf.constant('')
-# set_start = tf.Session()
-# print(set_start.run(start))
-
-for i in range(10):
-    print("\n")
-print("----------Tensorflow has been set----------")
-for i in range(5):
-    print("\n")
 
 #This is the training script that will be used for the classification of one vehicle, multiple vehicles and motocycles
 
@@ -26,26 +17,41 @@ for i in range(5):
 
 sess = tf.InteractiveSession()
 
-model_path="./weights/first_weights.ckpt"
+color=False
+animals=True
 
-batch_size=60
+if(color):
+    model_path="./color_weights/first_weights.ckpt"    
+    tensorboard_path='./colorboard'
+    tfrecords_file="color.tfrecords"
+if(animals):
+    model_path="./weights/first_weights.ckpt"
+    tensorboard_path='./tensorboard'
+    tfrecords_file="train.tfrecords"
 
-keep_probability=0.5
 
+batch_size=100
+
+keep_probability=1.0
+
+learning_rate=1e-6
+
+#We give out all* of the information to the tensorboard(cross_entropy, accuracy, histogram of weights, histogram of distributions)
 model_information=True
-
-#Will give out some information of the tensorboard
-graph_information=True
 
 num_classes=2
 
-num_epochs=20
+#This defines the number of epochs we can run
+#Our batch generator generates batch_size*(number of images in our dataset)
+#So for the training to not reach out of range num_iterations*batch_size=num_epochs*(number of images in our dataset)
+num_epochs=50
+num_iterations=50
 
 #################################################
 #Function For data fetching from TFRecords files#
 #################################################
 
-tfrecords_file="train.tfrecords"
+
 
 #Function for read and decode from a TFRecords File 
 def read_and_decode(filename_queue):
@@ -69,7 +75,7 @@ def read_and_decode(filename_queue):
     resized_label=tf.reshape(label,[2])
     
     #Creation of the batch
-    #Batch of size 10 from 100 samples that are randomized
+    #Batch of size batch_size from 100 samples that are randomized
     images,labels=tf.train.shuffle_batch([resized_image,resized_label],
                                             batch_size=batch_size,
                                             capacity=500,
@@ -78,7 +84,7 @@ def read_and_decode(filename_queue):
                                         )
     return images, labels
     
-#Creation of a queue, working with 10 epochs so 10*100 images, an image will basically be shown 10 times
+#Creation of a queue, working with num_epochs epochs so num_epochs*100 images, an image will basically be shown num_epochs times
 filename_queue=tf.train.string_input_producer([tfrecords_file],num_epochs=num_epochs)
 
 #Get an image batch
@@ -144,7 +150,7 @@ with tf.name_scope('Conv_Block_1'):
     pool1=max_pool2d(out,'first_pool')
     #end of definition
     
-    #visualisation information
+    #visualization information
     if(model_information):
         tf.summary.histogram('first_convoultion_histogram',first_convolution)
         tf.summary.histogram('second_convoultion_histogram',second_convolution)
@@ -179,7 +185,7 @@ with tf.name_scope('Conv_Block_2'):
     pool2=max_pool2d(out,'second_pool')
     #end of definition
     
-    #visualisation information
+    #visualization information
     if(model_information):
         tf.summary.histogram('first_convoultion_histogram',first_convolution)
         tf.summary.histogram('second_convoultion_histogram',second_convolution)
@@ -214,7 +220,7 @@ with tf.name_scope('Conv_Block_3'):
     pool3=max_pool2d(out,'third_pool')    
     #end of definition
     
-    #visualisation information
+    #visualization information
     if(model_information):
         tf.summary.histogram('first_convoultion_histogram',first_convolution)
         tf.summary.histogram('second_convoultion_histogram',second_convolution)
@@ -228,9 +234,9 @@ with tf.name_scope('first_fully_connected_layer'):
     
     shape = int(np.prod(pool3.get_shape()[1:]))   
     
-    first_fc=weight_variables([shape,1024],'weights')
+    first_fc=weight_variables([shape,4096],'weights')
     
-    first_fc_bias=bias_variables([1024],'bias')
+    first_fc_bias=bias_variables([4096],'bias')
     
     pool3_flat=tf.reshape(pool3,[-1,shape])
     
@@ -239,7 +245,7 @@ with tf.name_scope('first_fully_connected_layer'):
     fc1=tf.nn.relu(fc1)
     #end of definition
     
-    #visualisation information
+    #visualization information
     if(model_information):
         tf.summary.histogram('first_fully_connected',first_fc)
         tf.summary.histogram('first_fully_connected_bias',first_fc_bias)
@@ -250,13 +256,14 @@ with tf.name_scope('classifition_layer'):
     #dropout implementation
     fc1_drop = tf.nn.dropout(fc1, keep_probability)
     
-    classifier=weight_variables([1024,num_classes],'weights')
+    classifier=weight_variables([4096,num_classes],'weights')
     
     classifier_bias=bias_variables([num_classes],'bias')
     
     # output of the neural network before softmax
     classification=tf.nn.bias_add(tf.matmul(fc1_drop,classifier),classifier_bias)
-    #visualisation information
+    soft=tf.nn.softmax(classification)
+    #visualization information
     if(model_information):
         tf.summary.histogram('classifier',classifier)
         tf.summary.histogram('classifier_bias',classifier_bias)
@@ -271,20 +278,24 @@ with tf.name_scope('classifition_layer'):
 #We define our loss   
 cross_entropy=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=train_label, logits=classification))
 
-#We define our optimization scheme
-train_step=tf.train.AdamOptimizer(1e-8).minimize(cross_entropy)
+#We define our optimization scheme ADAM
+# train_step=tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy)
+
+#We define our optimization scheme SGD
+train_step=tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy)
 
 #We count the number or correct predictions
 correct_prediction=tf.equal(tf.argmax(classification,1), tf.argmax(train_label,1))
 
 #We define our accuracy
+
 accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 
 ############################
-#TensordBoard Visualisation#
+#TensordBoard Visualization#
 ############################
 
-if(graph_information):
+if(model_information):
     cross_view=tf.summary.scalar("cross_entropy",cross_entropy)
 
     accuracy_view=tf.summary.scalar("accuracy",accuracy)
@@ -292,7 +303,7 @@ if(graph_information):
     #merge all of the variables for visualization
     merged=tf.summary.merge_all()
 
-    mixed_writer=tf.summary.FileWriter('./tensorboard',sess.graph)
+    mixed_writer=tf.summary.FileWriter(tensorboard_path,sess.graph)
 
 sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
@@ -300,18 +311,25 @@ sess.run(tf.local_variables_initializer())
 #For model saving and restoration
 saver=tf.train.Saver()
 
+for i in range(30):
+    print("\n")
+print("----------Tensorflow has been set----------")
+for i in range(30):
+    print("\n")
+
 #First we check if there is a model, if so, we restore it
 if(os.path.isfile(model_path+".meta")):
     print("")
     print( "We found a previous model")
-    print("Model is being restored.....")
+    print("Model weights are being restored.....")
     saver.restore(sess,model_path)
-    print("Model has been restored")
+    print("Model weights have been restored")
     print("")
 else:
     print("")
-    print("No model was found....")
+    print("No model weights were found....")
     print("")
+    print("We generate a new model")
     
 #We run our batch coordinator
 coord=tf.train.Coordinator()
@@ -321,24 +339,30 @@ threads=tf.train.start_queue_runners(coord=coord)
 ########################
 #RUN THE NEURAL NETWORK#
 ########################
-for i in range(50):
+for i in range(num_iterations):
 	
-    input_data_batch=image_batch.eval()
-    input_label_batch=label_batch.eval()
-	# input_data_batch,input_label_batch=sess.run([image_batch,label_batch])
-    _,cross,acc,classif,pred,summary=sess.run([train_step,cross_entropy,accuracy,classification,correct_prediction,merged],feed_dict={train_data: input_data_batch,train_label:input_label_batch})
-    
+    # input_data_batch=image_batch.eval()
+    # input_label_batch=label_batch.eval()
+    input_data_batch,input_label_batch=sess.run([image_batch,label_batch])
+    # for debbuging purposes uncomment the following lines
+    # so,_,cross,acc,classif,pred,summary=sess.run([soft,train_step,cross_entropy,accuracy,classification,correct_prediction,merged],feed_dict={train_data: input_data_batch,train_label:input_label_batch})
+    #if we want to dump information for tensorboard
+    if(model_information):
+        so,_,cross,acc,classif,pred,summary=sess.run([soft,train_step,cross_entropy,accuracy,classification,correct_prediction,merged],feed_dict={train_data: input_data_batch,train_label:input_label_batch})
+    else:
+        so,_,cross,acc,classif,pred=sess.run([soft,train_step,cross_entropy,accuracy,classification,correct_prediction],feed_dict={train_data: input_data_batch,train_label:input_label_batch})
+        
     print("-------------------------------------------------------------")
     print("we called the model %d times"%(i))
     print("The current loss is : ",cross)
     print("The accuracy of the model is %d%%"%(100*acc))
     # print("this is the ground truth that we are looking for",input_label_batch)
+    # print("this is the softmax prediction : ",so)
     # print("these are the predictions that are correct",pred)
     print("-------------------------------------------------------------")
     print(" ")
     
     if(model_information):
-        # summary=sess.run(merged)
         mixed_writer.add_summary(summary,i)
     
 coord.request_stop()
@@ -348,39 +372,12 @@ coord.join(threads)
 #########################################
 print("")
 print("model is being saved.....")
-save_path=saver.save(sess,"./weights/first_weights.ckpt")
-print("model has been saved succesfully under ./weights/first_weights.ckpt")
+save_path=saver.save(sess,model_path)
+print("model has been saved succesfully under ",model_path)
 
 
 sess.close()
-# print("the shape of classification is : " ,classification.get_shape())
-# print("the value of the label that was fed was ",sess.run(train_label))
-# print("the value given by the classifier is ",sess.run(classification,feed_dict={keep_prob:1}))
 
-# classification=tf.nn.softmax(classification)
-# print("the value given by the classifier after the softmax is ",sess.run(classification,feed_dict={keep_prob:1}))
-# print("this is value of the cross entropy :", sess.run(cross_entropy,feed_dict={keep_prob:1}))
-# print(sess.run(cross_entropy,feed_dict={keep_prob:1}))
-   
-# print(classification)
-# print("the classifiction layer has a shape of ",str(classification.get_shape()))  
-#print(str(shape))
-#print(pool3)
-#print(sess.run(classification))
-#pool1=tf.reshape(pool1,[2,5])
-#print(sess.run(pool1))
-#pool1=tf.reshape(image,[a[0],a[1]])
-#image_encode=tf.image.encode_jpeg(image)
-#print(pool1)
-#cv2.imshow("image after tensor",pool1.eval())
-
-# for i in range(10):
-    # print("\n")
-    
-# cv2.waitKey(0)
-# cv2.destroyAllWindows() 
-# print('everything is ok')
-   
     
     
 
