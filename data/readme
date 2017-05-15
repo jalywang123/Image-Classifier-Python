@@ -1,0 +1,2 @@
+Here we find our data preprocesser
+It store all of our data in two tfrecord files, one for training and one for validation
