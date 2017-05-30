@@ -14,8 +14,8 @@ np.put(label_plus,1,1)
 
   
 #first thing we do is create a large list with all of the paths for the training files
-filenames=["./OK/%08d.tiff"%(i) for i in range(1,1001)]
-filenames.extend(["./PLUSIEURS_VEHICULES/%08d.tiff"%(k) for k in range(1,1001)])
+filenames=["./OK/%08d.tiff"%(i) for i in range(1,2401)]
+filenames.extend(["./PLUSIEURS_VEHICULES/%08d.tiff"%(k) for k in range(1,2401)])
 np.random.shuffle(filenames)
 
 #Function that will be used to Bynarize our data
@@ -23,7 +23,7 @@ def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 #The Tfrecord file
-tfrecords_file="valid.tfrecords"
+tfrecords_file="new_valid.tfrecords"
 writer = tf.python_io.TFRecordWriter(tfrecords_file)
 
 #We initialize a file counter to keep track of our process
@@ -80,7 +80,7 @@ def read_and_decode(filename_queue):
     label=tf.decode_raw(features['label'],tf.float64)
     image=tf.cast(image,dtype=tf.float32)
     #Reshape it since it has no shape yet
-    resized_image=tf.reshape(image,[170,512,3])
+    resized_image=tf.reshape(image,[76,256,3])
     resized_label=tf.reshape(label,[2])
     
     #Creation of the batch
@@ -114,11 +114,11 @@ with tf.Session() as sess :
         print("-------------the size of the batch is : ",image_batch.get_shape()[0])
         print("the shape of the first image is : ",image[0,:,:,:].shape)
         print("this is the current batch : %d"%(i))
-        show=tf.reshape(image[0,:,:,:],[170,512,3])
-        show2=tf.reshape(image[1,:,:,:],[170,512,3])
-        show3=tf.reshape(image[2,:,:,:],[170,512,3])
-        show4=tf.reshape(image[3,:,:,:],[170,512,3])
-        show5=tf.reshape(image[4,:,:,:],[170,512,3])
+        show=tf.reshape(image[0,:,:,:],[76,256,3])
+        show2=tf.reshape(image[1,:,:,:],[76,256,3])
+        show3=tf.reshape(image[2,:,:,:],[76,256,3])
+        show4=tf.reshape(image[3,:,:,:],[76,256,3])
+        show5=tf.reshape(image[4,:,:,:],[76,256,3])
 
         show=(tf.cast(show,dtype=tf.uint8))
         show2=(tf.cast(show2,dtype=tf.uint8))
