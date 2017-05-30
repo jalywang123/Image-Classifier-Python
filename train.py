@@ -1,9 +1,13 @@
 import tensorflow as tf
 import cv2
-import os.path
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import numpy as np
 import time
 #This is the training script that will be used for the classification of one vehicle and multiple vehicles 
+
+#CODE THAT SPEEDS UP TRAINING BY 37.5 PERCENT
+os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
 ####################################################
 #First we define some hyperparameters for our model#
@@ -11,7 +15,7 @@ import time
 #We define our session
 sess = tf.InteractiveSession()
 
-small_images=False
+small_images=True
 if(small_images):
     #where we store and restore our model's weights
     model_path="D:\weights_128_76/weights"
@@ -24,8 +28,8 @@ if(small_images):
     num_first_convolutions=16
     num_second_convolutions=16
     num_third_convolutions=32
-    num_first_fully=1024
-    num_second_fully=512
+    num_first_fully=512
+    num_second_fully=256
     #Input sizes
     input_height=76
     input_width=256
@@ -35,7 +39,7 @@ if(small_images):
     batch_size=20
     validation_batch=20
     #Number of training images
-    capacity=40
+    capacity=20
     #we do not use dropout for our validation
     keep_probability=0.5
     #Optimization scheme parameters
@@ -68,7 +72,7 @@ else:
     batch_size=20
     validation_batch=20
     #Number of training images
-    capacity=40
+    capacity=20
     #we do not use dropout for our validation
     keep_probability=0.5
     #Optimization scheme parameters
@@ -85,7 +89,7 @@ else:
 #num_iterations*batch_size=num_epochs*capacity
 # num_epochs=125
 info_dump=100
-num_iterations=200000
+num_iterations=1000000
 
 
 
@@ -160,7 +164,7 @@ def read_and_decode(filename_queue,batch_size,capacity):
                                             batch_size=batch_size,
                                             capacity=capacity,
                                             num_threads=4,
-                                            min_after_dequeue=batch_size
+                                            min_after_dequeue=0
                                         )
     return images, labels
 with tf.name_scope('Input-producer'): 
@@ -479,9 +483,9 @@ sess.run(tf.local_variables_initializer())
 #For model saving and restoration, we keep at most 10000 files in our checkpoint
 saver=tf.train.Saver(max_to_keep=100000)
 
-print("\n"*30)
+print("\n"*2)
 print("----------Tensorflow has been set----------")
-print("\n"*10)
+print("\n"*2)
 
 #First we check if there is a model, if so, we restore it
 if(os.path.isfile(model_path+".meta")):
@@ -490,13 +494,13 @@ if(os.path.isfile(model_path+".meta")):
     print("Model weights are being restored.....")
     saver.restore(sess,model_path)
     print("Model weights have been restored")
-    print("\n"*5)
+    print("\n"*2)
 else:
     print("")
     print("No model weights were found....")
     print("")
     print("We generate a new model")
-    print("\n"*5)
+    print("\n"*2)
     
 #We run our batch coordinator
 coord=tf.train.Coordinator()
@@ -508,7 +512,7 @@ threads=tf.train.start_queue_runners(coord=coord)
 initial_start=time.time()
 for i in range(num_iterations):
 
-    if(i>100000):
+    if(i>50000):
         weight_saver=20000
         
     initialize_counters()
