@@ -1,6 +1,7 @@
 import tensorflow as tf
 import cv2
-import os.path
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import numpy as np
 import time
 
@@ -17,22 +18,21 @@ import time
 #We define our session
 small_images=True
 if(small_images):
-    ckpt=tf.train.get_checkpoint_state("D:\weights_128_76")
-    evaluation="evaluations_128x76.txt"
-    num_first_convolutions=12
-    num_second_convolutions=12
-    num_third_convolutions=24
-    num_fourth_convolutions=24
-    num_first_fully=1024
-    num_second_fully=512
-    tfrecords_validation_file="../data_128/valid/valid.tfrecords"
-    input_height=76
-    input_width=256
-    validation_batch=48
-    capacity=1
-    mean = tf.constant([91.97232819, 81.13652039, 91.6187439], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
-    variance=tf.constant([3352.71875,3293.62133789,3426.63623047], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_var')
-    standard_deviation=tf.sqrt(variance)
+	ckpt=tf.train.get_checkpoint_state("D:\weights_128_76")
+	evaluation="evaluations_128x76.txt"
+	num_first_convolutions=16
+	num_second_convolutions=16
+	num_third_convolutions=32
+	num_first_fully=512
+	num_second_fully=256
+	tfrecords_validation_file="../data_128/valid/valid.tfrecords"
+	input_height=76
+	input_width=256
+	validation_batch=48
+	capacity=1
+	mean = tf.constant([91.97232819, 81.13652039, 91.6187439], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
+	variance=tf.constant([3352.71875,3293.62133789,3426.63623047], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_var')
+	standard_deviation=tf.sqrt(variance)
 else:
     ckpt=tf.train.get_checkpoint_state("D:\weights_256_170")
     evaluation="evaluations_256x170.txt"
@@ -345,21 +345,21 @@ with tf.name_scope('second_fully_connected_layer'):
 
     fc2_valid=tf.nn.relu(fc2_valid)
     #end of definition
-    
-  
+	
+
 with tf.name_scope('classifition_layer'):
-    #definition of classification layer
-    
-    classifier=weight_variables([num_second_fully,num_classes],'weights')
-    
-    classifier_bias=bias_variables([num_classes],'bias')
-    
-    # output of the neural network before softmax
-    classification_valid=tf.nn.bias_add(tf.matmul(fc2_valid,classifier),classifier_bias)
-    soft_valid=tf.nn.softmax(classification_valid)
-    soft_valid=100*soft_valid
-    soft_valid=tf.cast(soft_valid,tf.uint8)
-    #visualization information
+	#definition of classification layer
+	
+	classifier=weight_variables([num_second_fully,num_classes],'weights')
+	
+	classifier_bias=bias_variables([num_classes],'bias')
+	
+	# output of the neural network before softmax
+	classification_valid=tf.nn.bias_add(tf.matmul(fc2_valid,classifier),classifier_bias)
+	soft_valid=tf.nn.softmax(classification_valid)
+	soft_valid=100*soft_valid
+	soft_valid=tf.cast(soft_valid,tf.uint8)
+	#visualization information
 
         
 
@@ -372,9 +372,9 @@ accuracy_valid=tf.reduce_mean(tf.cast(correct_prediction_valid,tf.float32))
 
 
 
-print("\n"*30)
+print("\n")
 print("----------Tensorflow has been set----------")
-print("\n"*10)
+print("\n")
 
 #we are going to be testing every model that we had previously saved
 counter=0
@@ -394,114 +394,117 @@ sess.run(tf.local_variables_initializer())
 #We run our batch coordinator
 coord=tf.train.Coordinator()
 threads=tf.train.start_queue_runners(coord=coord)
-	
-
+limit=100	
+# models=["./validation_weights/weights_iteration_80000.ckpt"]
 for model in models : 
-    # target=open("evaluations_128x76.txt","a")
-    target=open(evaluation,"a")
+	# if(len(models)>1):
+		# print("we stop because there are too many models")
+		# break
+		
+	target=open(evaluation,"a")
 
-    #so we have a certain number of models that we are going to be testing.
-    #First we check if there is a model, if so, we restore it
-    if(os.path.isfile(model+".meta")):
-        print("")
-        print( "We found a previous model")
-        print("Model weights are being restored.....")
-        saver.restore(sess,model)
-        print("Model weights have been restored")
-    else:
-        print("")
-        print("No model weights were found....")
-        print("")
-        print("We generate a new model")
-        
-    
-    final_accuracy=0
-    error_dump=False
-    ########################
-    #RUN THE NEURAL NETWORK#
-    ########################
-    initial_start=time.time()
-    initialize_counters()
-    for i in range(num_iterations):
-      
-        normallized_images,validation_output,validation_input=sess.run([validation_images,validation_labels,unnormalized_validation_images])
-        
-        start=time.time()
+	#so we have a certain number of models that we are going to be testing.
+	#First we check if there is a model, if so, we restore it
+	if(os.path.isfile(model+".meta")):
+		print("")
+		print( "We found a previous model")
+		print("Model weights are being restored.....")
+		saver.restore(sess,model)
+		print("Model weights have been restored")
+	else:
+		print("")
+		print("No model weights were found....")
+		print("")
+		print("We generate a new model")
+		
 
-        acc_val,classif_valid,so_valid=sess.run([accuracy_valid,classification_valid,soft_valid],feed_dict={validation_data:normallized_images ,validation_label:validation_output})
+	final_accuracy=0
+	error_dump=False
+	########################
+	#RUN THE NEURAL NETWORK#
+	########################
+	initial_start=time.time()
+	initialize_counters()
+	for i in range(num_iterations):
+	  
+		normallized_images,validation_output,validation_input=sess.run([validation_images,validation_labels,unnormalized_validation_images])
+		
+		start=time.time()
 
-        if(validation_feedback):
-        #We count the number of images in each class for training
-            for c in range(validation_batch):
-                if (np.array_equal(validation_output[c],label_ok)):
-                    counter_ok=counter_ok+1
-                    #ok class
-                    if (np.argmax(classif_valid[c],0)==0 and correct_ok_classified<50):
-                        correct_ok_classified=correct_ok_classified+1
-                        if(error_dump):
-                            image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
-                            image=(tf.cast(image,dtype=tf.uint8))
-                            cv2.imwrite("./perfect/ok/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(correct_ok_classified,so_valid[c][0],so_valid[c][1]),image.eval())
-                        
-                    if (np.argmax(classif_valid[c],0)==1):
-                        ok_to_plus=ok_to_plus+1
-                        if(error_dump):
-                            image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
-                            image=(tf.cast(image,dtype=tf.uint8))
-                            cv2.imwrite("./errors/ok_to_plus/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(ok_to_plus,so_valid[c][0],so_valid[c][1]),image.eval())
-                                          
-               
-                if (np.array_equal(validation_output[c],label_plus)):
-                    counter_plus=counter_plus+1
-                    if (np.argmax(classif_valid[c],0)==1 and correct_plus_classified<50):
-                        correct_plus_classified=correct_plus_classified+1
-                        if(error_dump):
-                            image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
-                            image=(tf.cast(image,dtype=tf.uint8))
-                            cv2.imwrite("./perfect/plus/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(correct_plus_classified,so_valid[c][0],so_valid[c][1]),image.eval())
-                    if (np.argmax(classif_valid[c],0)==0):
-                        plus_to_ok=plus_to_ok+1
-                        if(error_dump):
-                            image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
-                            image=(tf.cast(image,dtype=tf.uint8))
-                            cv2.imwrite("./errors/plus_to_ok/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(plus_to_ok,so_valid[c][0],so_valid[c][1]),image.eval())
-        final_accuracy=final_accuracy+(100*acc_val)
-        end=time.time()
-        if((i+1)%25==0) :
-            print("-------------------------------------------------------------")
-            print("Evaluation of model %s at %d%%"%(model,i+1))
-            # print("this iteration took %d seconds"%((end-start)))
-            print("-------------------------------------------------------------")
-        if(validation_feedback and (i+1)==num_iterations):
-        # if(True):
-            print("#############   VALIDATION INFORMATION   #############")
-            
-            if(counter_ok!=0):
-                print("the model was shown %d OK images"%(counter_ok))
-            if(counter_plus!=0):
-                print("the model was shown %d PLUSIEURS VEHICULES images"%(counter_plus))
-            if(ok_to_plus!=0):
-                print("%d OK vehicles were classified as PLUSIEURS VEHICULES"%(ok_to_plus))
-            if(plus_to_ok!=0):
-                print("%d PLUSIEURS VEHICULES vehicles were classified as OK"%(plus_to_ok))
-        
-            print("-------------------------------------------------------------")
-    
+		acc_val,classif_valid,so_valid=sess.run([accuracy_valid,classification_valid,soft_valid],feed_dict={validation_data:normallized_images ,validation_label:validation_output})
 
-        
-    print("Final accuracy is %.2f%%"%((final_accuracy)/num_iterations))
-    target.write("\n")
-    target.write("Evaluation of model %s yields %.2f%% %d OK - %d PLUS"%(model,((final_accuracy)/num_iterations),counter_ok,counter_plus))
-    target.write("\n")
-    target.write("%d OK vehicles were classified as PLUSIEURS VEHICULES"%(ok_to_plus))
-    target.write("\n")
-    target.write("%d PLUSIEURS VEHICULES vehicles were classified as OK"%(plus_to_ok))
-    target.write("\n")
-    target.close()
-    # print("The validation computation proces took %d minutes "%(((end-initial_start)/60))) 
-    print("The validation computation process took %d seconds "%(((end-initial_start)))) 
-    print("")
-	
+		if(validation_feedback):
+		#We count the number of images in each class for training
+			for c in range(validation_batch):
+				if (np.array_equal(validation_output[c],label_ok)):
+					counter_ok=counter_ok+1
+					#ok class
+					if (np.argmax(classif_valid[c],0)==0 and correct_ok_classified<limit):
+						correct_ok_classified=correct_ok_classified+1
+						if(error_dump):
+							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
+							image=(tf.cast(image,dtype=tf.uint8))
+							cv2.imwrite("./perfect/ok/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(correct_ok_classified,so_valid[c][0],so_valid[c][1]),image.eval())
+						
+					if (np.argmax(classif_valid[c],0)==1):
+						ok_to_plus=ok_to_plus+1
+						if(error_dump):
+							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
+							image=(tf.cast(image,dtype=tf.uint8))
+							cv2.imwrite("./errors/ok_to_plus/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(ok_to_plus,so_valid[c][0],so_valid[c][1]),image.eval())
+										  
+			   
+				if (np.array_equal(validation_output[c],label_plus)):
+					counter_plus=counter_plus+1
+					if (np.argmax(classif_valid[c],0)==1 and correct_plus_classified<limit):
+						correct_plus_classified=correct_plus_classified+1
+						if(error_dump):
+							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
+							image=(tf.cast(image,dtype=tf.uint8))
+							cv2.imwrite("./perfect/plus/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(correct_plus_classified,so_valid[c][0],so_valid[c][1]),image.eval())
+					if (np.argmax(classif_valid[c],0)==0):
+						plus_to_ok=plus_to_ok+1
+						if(error_dump):
+							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
+							image=(tf.cast(image,dtype=tf.uint8))
+							cv2.imwrite("./errors/plus_to_ok/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(plus_to_ok,so_valid[c][0],so_valid[c][1]),image.eval())
+		final_accuracy=final_accuracy+(100*acc_val)
+		end=time.time()
+		if((i+1)%25==0) :
+			print("-------------------------------------------------------------")
+			print("Evaluation of model %s at %d%%"%(model,i+1))
+			# print("this iteration took %d seconds"%((end-start)))
+			print("-------------------------------------------------------------")
+		if(validation_feedback and (i+1)==num_iterations):
+		# if(True):
+			print("#############   VALIDATION INFORMATION   #############")
+			
+			if(counter_ok!=0):
+				print("the model was shown %d OK images"%(counter_ok))
+			if(counter_plus!=0):
+				print("the model was shown %d PLUSIEURS VEHICULES images"%(counter_plus))
+			if(ok_to_plus!=0):
+				print("%d OK vehicles were classified as PLUSIEURS VEHICULES"%(ok_to_plus))
+			if(plus_to_ok!=0):
+				print("%d PLUSIEURS VEHICULES vehicles were classified as OK"%(plus_to_ok))
+		
+			print("-------------------------------------------------------------")
+
+
+		
+	print("Final accuracy is %.2f%%"%((final_accuracy)/num_iterations))
+	target.write("\n")
+	target.write("Evaluation of model %s yields %.2f%% %d OK - %d PLUS"%(model,((final_accuracy)/num_iterations),counter_ok,counter_plus))
+	target.write("\n")
+	target.write("%d OK vehicles were classified as PLUSIEURS VEHICULES"%(ok_to_plus))
+	target.write("\n")
+	target.write("%d PLUSIEURS VEHICULES vehicles were classified as OK"%(plus_to_ok))
+	target.write("\n")
+	target.close()
+	# print("The validation computation proces took %d minutes "%(((end-initial_start)/60))) 
+	print("The validation computation process took %d seconds "%(((end-initial_start)))) 
+	print("")
+
 coord.request_stop()
 coord.join(threads)    
     
