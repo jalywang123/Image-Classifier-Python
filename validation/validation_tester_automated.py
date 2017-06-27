@@ -4,6 +4,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import numpy as np
 import time
+import csv
 
 
 #########################################
@@ -350,18 +351,23 @@ with tf.name_scope('second_fully_connected_layer'):
 with tf.name_scope('classifition_layer'):
 	#definition of classification layer
 	
+	'''THIS MUST BE REMOVED'''
+	#it is not needed since we keep each neuron for testing
+	fc2_valid = tf.nn.dropout(fc2_valid, keep_probability)
+	
 	classifier=weight_variables([num_second_fully,num_classes],'weights')
 	
 	classifier_bias=bias_variables([num_classes],'bias')
 	
 	# output of the neural network before softmax
-	classification_valid=tf.nn.bias_add(tf.matmul(fc2_valid,classifier),classifier_bias)
+	# classification_valid=tf.nn.bias_add(tf.matmul(fc2_valid,classifier),classifier_bias)
+	# here we try to lower our classification for latter thresholding, it can also be viewed as a way of correcting dropout scaling that was not considered for the training phase
+	classification_valid=tf.multiply(tf.nn.bias_add(tf.matmul(fc2_valid,classifier),classifier_bias),1)
 	soft_valid=tf.nn.softmax(classification_valid)
 	soft_valid=100*soft_valid
 	soft_valid=tf.cast(soft_valid,tf.uint8)
 	#visualization information
 
-        
 
 #We count the number or correct predictions
 correct_prediction_valid=tf.equal(tf.argmax(classification_valid,1), tf.argmax(validation_label,1))
@@ -377,7 +383,6 @@ print("----------Tensorflow has been set----------")
 print("\n")
 
 #we are going to be testing every model that we had previously saved
-counter=0
 saver=tf.train.Saver()
 sess = tf.InteractiveSession()  
 #Creation of a queue, working with num_epochs epochs so num_epochs*100 images, an image will basically be shown num_epochs times
@@ -394,13 +399,19 @@ sess.run(tf.local_variables_initializer())
 #We run our batch coordinator
 coord=tf.train.Coordinator()
 threads=tf.train.start_queue_runners(coord=coord)
-limit=100	
-# models=["./validation_weights/weights_iteration_80000.ckpt"]
+limit=10000	
+# models=["./validation_weights/weights_iteration_890.ckpt"]
 for model in models : 
 	# if(len(models)>1):
 		# print("we stop because there are too many models")
 		# break
-		
+	#the following list's purpose is to track recognition rate and error rate, it will be used to evaluate model thresholding
+	#it contains a pair that represents probablity of the majority class and the classification result, either well classified or not
+	#example (0.89,1) represents an image that was corrctly classified due to 1 with a probability of 0.98
+	#to turn it on, set roc_evaluation to True
+	roc_evaluation=False
+	data=[]	
+	
 	target=open(evaluation,"a")
 
 	#so we have a certain number of models that we are going to be testing.
@@ -441,6 +452,9 @@ for model in models :
 					#ok class
 					if (np.argmax(classif_valid[c],0)==0 and correct_ok_classified<limit):
 						correct_ok_classified=correct_ok_classified+1
+						if(roc_evaluation):
+							#adding information to data
+							data.append((so_valid[c][0],1))
 						if(error_dump):
 							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
 							image=(tf.cast(image,dtype=tf.uint8))
@@ -448,6 +462,9 @@ for model in models :
 						
 					if (np.argmax(classif_valid[c],0)==1):
 						ok_to_plus=ok_to_plus+1
+						if(roc_evaluation):
+							#adding information to data
+							data.append((so_valid[c][1],0))
 						if(error_dump):
 							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
 							image=(tf.cast(image,dtype=tf.uint8))
@@ -458,12 +475,18 @@ for model in models :
 					counter_plus=counter_plus+1
 					if (np.argmax(classif_valid[c],0)==1 and correct_plus_classified<limit):
 						correct_plus_classified=correct_plus_classified+1
+						if(roc_evaluation):
+							#adding information to data
+							data.append((so_valid[c][1],1))
 						if(error_dump):
 							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
 							image=(tf.cast(image,dtype=tf.uint8))
 							cv2.imwrite("./perfect/plus/%d_OK_%d%%_PLUSIEURS_VEHICULES_%d%%.tiff"%(correct_plus_classified,so_valid[c][0],so_valid[c][1]),image.eval())
 					if (np.argmax(classif_valid[c],0)==0):
 						plus_to_ok=plus_to_ok+1
+						if(roc_evaluation):
+							#adding information to data
+							data.append((so_valid[c][0],0))
 						if(error_dump):
 							image=tf.reshape(validation_input[c,:,:,:],[input_height,input_width,3])
 							image=(tf.cast(image,dtype=tf.uint8))
@@ -489,9 +512,31 @@ for model in models :
 				print("%d PLUSIEURS VEHICULES vehicles were classified as OK"%(plus_to_ok))
 		
 			print("-------------------------------------------------------------")
-
-
+	
 		
+	if(roc_evaluation):
+		with open('data.csv','w+',newline='') as csvfile:
+			writer=csv.writer(csvfile,delimiter=";",quotechar="'")
+			
+			data.sort(key=lambda tup: tup[0])
+			data.reverse()
+			print("\n")
+			
+			for threshold in reversed(range(50,100)):
+				passed=0
+				error=0
+				counter=0
+				for i in range(len(data)):
+					if(data[i][0]>=threshold):
+						passed+=data[i][1]
+						counter+=1
+					if(data[i][0]<threshold):
+						break
+				error=counter-passed
+				writer.writerow([threshold,'%.4f'%((counter-passed)/len(data)),'%.4f'%(passed/len(data)),'%.4f'%((counter-passed)/counter),'%.4f'%(passed/len(data))])
+				# print("For threshold %d, we took into account %d images, %d vehicles were correctly classified and %d were not correctly classified "%(threshold,counter,passed,error))		
+				# print("Therefore the error rate is %.4f and the recognition rate is %.4f\n"%(((error/len(data)) if counter>0 else 0),((passed/len(data)) if counter>0 else 0)))
+
 	print("Final accuracy is %.2f%%"%((final_accuracy)/num_iterations))
 	target.write("\n")
 	target.write("Evaluation of model %s yields %.2f%% %d OK - %d PLUS"%(model,((final_accuracy)/num_iterations),counter_ok,counter_plus))
