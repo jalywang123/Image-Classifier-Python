@@ -16,15 +16,23 @@ os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 sess = tf.InteractiveSession()
 
 small_images=True
+three_convs_per_block=True
+four_convs_per_block=False
+
+if(four_convs_per_block):
+	three_convs_per_block=True
+
 if(small_images):
-	'''WILL LATER BE CHANGED'''
 	#where we store and restore our model's weights
-	model_path="./weights/weights"
+	model_path="D:/classifier weights/weights/weights"
 	#where the tensorboard information is dumped
-	tensorboard_path="./tensorboard/prototype"
+	tensorboard_path="./tensorboard/prototype(3 convs per convblock)"
 	#where we fetch our training and validation data
 	tfrecords_file="D:/classifier data/data/original/train/train.tfrecords"
 	tfrecords_validation_file="D:/classifier data/data/original/valid/valid.tfrecords"
+	# tfrecords_file="overfitting_data/train/train.tfrecords"
+	# tfrecords_validation_file="overfitting_data/valid/valid.tfrecords"
+	
 	#convolution parameters
 	num_first_convolutions=16
 	num_second_convolutions=32
@@ -51,42 +59,43 @@ if(small_images):
 	model_information=True
 	num_classes=2
 else:
-    #where we store and restore our model's weights
-    model_path="D:\weights_256_170/weights"
-    #where the tensorboard information is dumped
-    tensorboard_path="./tensorboard"
-    #where we fetch our training and validation data
-    tfrecords_file="./data/train/train.tfrecords"
-    tfrecords_validation_file="./data/valid/valid.tfrecords"
-    #convolution parameters
-    num_first_convolutions=16
-    num_second_convolutions=16
-    num_third_convolutions=32
-    num_fourth_convolutions=32
-    num_first_fully=1024
-    num_second_fully=512
-    #Input sizes
-    input_height=170
-    input_width=512
-    #After a certain number of iterations we save the model
-    weight_saver=50000
-    #Batch sizes
-    batch_size=20
-    validation_batch=20
-    #Number of training images
-    capacity=20
-    #we do not use dropout for our validation
-    keep_probability=0.5
-    #Optimization scheme parameters
-    learning_rate=1e-4
-    momentum=0.9
-    #Dumping information to tensorboard or not
-    model_information=True
-    num_classes=2
+	'''	use when absolutely sure of what you are doing'''
+	#where we store and restore our model's weights
+	# model_path="D:\weights_256_170/weights"
+	#where the tensorboard information is dumped
+	# tensorboard_path="./tensorboard"
+	#where we fetch our training and validation data
+	tfrecords_file="./data/train/train.tfrecords"
+	tfrecords_validation_file="./data/valid/valid.tfrecords"
+	#convolution parameters
+	num_first_convolutions=16
+	num_second_convolutions=16
+	num_third_convolutions=32
+	num_fourth_convolutions=32
+	num_first_fully=1024
+	num_second_fully=512
+	#Input sizes
+	input_height=170
+	input_width=512
+	#After a certain number of iterations we save the model
+	weight_saver=50000
+	#Batch sizes
+	batch_size=20
+	validation_batch=20
+	#Number of training images
+	capacity=20
+	#we do not use dropout for our validation
+	keep_probability=0.5
+	#Optimization scheme parameters
+	learning_rate=1e-4
+	momentum=0.9
+	#Dumping information to tensorboard or not
+	model_information=True
+	num_classes=2
     
 
 #Number of iterations
-info_dump=10
+info_dump=1000
 num_iterations=500000
 
 
@@ -230,8 +239,12 @@ with tf.name_scope('Conv_Block_1'):
 	first_bias=bias_variables([num_first_convolutions],'first_biases')
 	second_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'second_weights')
 	second_bias=bias_variables([num_first_convolutions],'second_biases')
-	third_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'third_weights')
-	third_bias=bias_variables([num_first_convolutions],'third_biases')
+	if(three_convs_per_block):
+		third_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'third_weights')
+		third_bias=bias_variables([num_first_convolutions],'third_biases')
+	if(four_convs_per_block):
+		fourth_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'fourth_weights')
+		fourth_bias=bias_variables([num_first_convolutions],'fourth_biases')
 	#end of definition
 	
 	'''UNCORRELATED'''
@@ -250,13 +263,22 @@ with tf.name_scope('Conv_Block_1'):
 	right_out=tf.nn.relu(right_out)
 	right_out_valid=tf.nn.relu(right_out_valid)
 	
-	# right_conv3=conv2d(right_out,third_convolution)
-	# right_conv3_valid=conv2d(right_out_valid,third_convolution)
-	# right_out=tf.nn.bias_add(right_conv3,third_bias)
-	# right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
-	# right_out=tf.nn.relu(right_out)
-	# right_out_valid=tf.nn.relu(right_out_valid)
+	if(three_convs_per_block):
+		right_conv3=conv2d(right_out,third_convolution)
+		right_conv3_valid=conv2d(right_out_valid,third_convolution)
+		right_out=tf.nn.bias_add(right_conv3,third_bias)
+		right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
 	
+	if(four_convs_per_block):
+		right_conv4=conv2d(right_out,fourth_convolution)
+		right_conv4_valid=conv2d(right_out_valid,fourth_convolution)
+		right_out=tf.nn.bias_add(right_conv4,fourth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+
 	right_pool1=max_pool2d(right_out,'right_first_pool')
 	right_pool1_valid=max_pool2d(right_out_valid,'right_first_pool_valid')
 	
@@ -275,13 +297,22 @@ with tf.name_scope('Conv_Block_1'):
 	left_out=tf.nn.relu(left_out)
 	left_out_valid=tf.nn.relu(left_out_valid)
 	
-	# left_conv3=conv2d(left_out,third_convolution)
-	# left_conv3_valid=conv2d(left_out_valid,third_convolution)
-	# left_out=tf.nn.bias_add(left_conv3,third_bias)
-	# left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
-	# left_out=tf.nn.relu(left_out)
-	# left_out_valid=tf.nn.relu(left_out_valid)
-	
+	if(three_convs_per_block):
+		left_conv3=conv2d(left_out,third_convolution)
+		left_conv3_valid=conv2d(left_out_valid,third_convolution)
+		left_out=tf.nn.bias_add(left_conv3,third_bias)
+		left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+	if(four_convs_per_block):
+		left_conv4=conv2d(left_out,fourth_convolution)
+		left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
+		left_out=tf.nn.bias_add(left_conv3,fourth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
 	left_pool1=max_pool2d(left_out,'left_first_pool')
 	left_pool1_valid=max_pool2d(left_out_valid,'left_first_pool_valid')
 	'''END UNCORRELATED'''
@@ -294,8 +325,12 @@ with tf.name_scope('Conv_Block_2'):
 	first_bias=bias_variables([num_second_convolutions],'first_biases')
 	second_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'second_weights')
 	second_bias=bias_variables([num_second_convolutions],'second_biases')
-	third_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'third_weights')
-	third_bias=bias_variables([num_second_convolutions],'third_biases')
+	if(three_convs_per_block):
+		third_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'third_weights')
+		third_bias=bias_variables([num_second_convolutions],'third_biases')
+	if(four_convs_per_block):
+		fourth_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'fourth_weights')
+		fourth_bias=bias_variables([num_second_convolutions],'fourth_biases')
 	#end of definition
 
 	'''UNCORRELATED'''
@@ -314,15 +349,24 @@ with tf.name_scope('Conv_Block_2'):
 	right_out=tf.nn.relu(right_out)
 	right_out_valid=tf.nn.relu(right_out_valid)
 	
-	# right_conv3=conv2d(right_out,third_convolution)
-	# right_conv3_valid=conv2d(right_out_valid,third_convolution)
-	# right_out=tf.nn.bias_add(right_conv3,third_bias)
-	# right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
-	# right_out=tf.nn.relu(right_out)
-	# right_out_valid=tf.nn.relu(right_out_valid)
-	
-	right_pool2=max_pool2d(right_out,'right_first_pool')
-	right_pool2_valid=max_pool2d(right_out_valid,'right_first_pool_valid')
+	if(three_convs_per_block):
+		right_conv3=conv2d(right_out,third_convolution)
+		right_conv3_valid=conv2d(right_out_valid,third_convolution)
+		right_out=tf.nn.bias_add(right_conv3,third_bias)
+		right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+	if(four_convs_per_block):
+		right_conv4=conv2d(right_out,fourth_convolution)
+		right_conv4_valid=conv2d(right_out_valid,fourth_convolution)
+		right_out=tf.nn.bias_add(right_conv4,fourth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+	right_pool2=max_pool2d(right_out,'right_second_pool')
+	right_pool2_valid=max_pool2d(right_out_valid,'right_second_pool_valid')
 	
 	#left side
 	left_conv1=conv2d(left_pool1,first_convolution)
@@ -339,15 +383,24 @@ with tf.name_scope('Conv_Block_2'):
 	left_out=tf.nn.relu(left_out)
 	left_out_valid=tf.nn.relu(left_out_valid)
 	
-	# left_conv3=conv2d(left_out,third_convolution)
-	# left_conv3_valid=conv2d(left_out_valid,third_convolution)
-	# left_out=tf.nn.bias_add(left_conv3,third_bias)
-	# left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
-	# left_out=tf.nn.relu(left_out)
-	# left_out_valid=tf.nn.relu(left_out_valid)
-	
-	left_pool2=max_pool2d(left_out,'left_first_pool')
-	left_pool2_valid=max_pool2d(left_out_valid,'left_first_pool_valid')
+	if(three_convs_per_block):
+		left_conv3=conv2d(left_out,third_convolution)
+		left_conv3_valid=conv2d(left_out_valid,third_convolution)
+		left_out=tf.nn.bias_add(left_conv3,third_bias)
+		left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+	if(four_convs_per_block):
+		left_conv4=conv2d(left_out,fourth_convolution)
+		left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
+		left_out=tf.nn.bias_add(left_conv3,fourth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+	left_pool2=max_pool2d(left_out,'left_second_pool')
+	left_pool2_valid=max_pool2d(left_out_valid,'left_second_pool_valid')
 	'''END UNCORRELATED'''
     
 
@@ -358,8 +411,12 @@ with tf.name_scope('Conv_Block_3'):
 	first_bias=bias_variables([num_third_convolutions],'first_biases')
 	second_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'second_weights')
 	second_bias=bias_variables([num_third_convolutions],'second_biases')
-	third_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'third_weights')
-	third_bias=bias_variables([num_third_convolutions],'third_biases')
+	if(three_convs_per_block):
+		third_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'third_weights')
+		third_bias=bias_variables([num_third_convolutions],'third_biases')
+	if(four_convs_per_block):
+		fourth_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'fourth_weights')
+		fourth_bias=bias_variables([num_third_convolutions],'fourth_biases')
 	#end of definition
 	
 	'''UNCORRELATED'''
@@ -378,15 +435,24 @@ with tf.name_scope('Conv_Block_3'):
 	right_out=tf.nn.relu(right_out)
 	right_out_valid=tf.nn.relu(right_out_valid)
 	
-	# right_conv3=conv2d(right_out,third_convolution)
-	# right_conv3_valid=conv2d(right_out_valid,third_convolution)
-	# right_out=tf.nn.bias_add(right_conv3,third_bias)
-	# right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
-	# right_out=tf.nn.relu(right_out)
-	# right_out_valid=tf.nn.relu(right_out_valid)
-	
-	right_pool3=max_pool2d(right_out,'right_first_pool')
-	right_pool3_valid=max_pool2d(right_out_valid,'right_first_pool_valid')
+	if(three_convs_per_block):
+		right_conv3=conv2d(right_out,third_convolution)
+		right_conv3_valid=conv2d(right_out_valid,third_convolution)
+		right_out=tf.nn.bias_add(right_conv3,third_bias)
+		right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+	if(four_convs_per_block):
+		right_conv4=conv2d(right_out,fourth_convolution)
+		right_conv4_valid=conv2d(right_out_valid,fourth_convolution)
+		right_out=tf.nn.bias_add(right_conv4,fourth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+	right_pool3=max_pool2d(right_out,'right_third_pool')
+	right_pool3_valid=max_pool2d(right_out_valid,'right_third_pool_valid')
 	
 	#left side
 	left_conv1=conv2d(left_pool2,first_convolution)
@@ -403,15 +469,24 @@ with tf.name_scope('Conv_Block_3'):
 	left_out=tf.nn.relu(left_out)
 	left_out_valid=tf.nn.relu(left_out_valid)
 	
-	# left_conv3=conv2d(left_out,third_convolution)
-	# left_conv3_valid=conv2d(left_out_valid,third_convolution)
-	# left_out=tf.nn.bias_add(left_conv3,third_bias)
-	# left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
-	# left_out=tf.nn.relu(left_out)
-	# left_out_valid=tf.nn.relu(left_out_valid)
-	
-	left_pool3=max_pool2d(left_out,'left_first_pool')
-	left_pool3_valid=max_pool2d(left_out_valid,'left_first_pool_valid')
+	if(three_convs_per_block):
+		left_conv3=conv2d(left_out,third_convolution)
+		left_conv3_valid=conv2d(left_out_valid,third_convolution)
+		left_out=tf.nn.bias_add(left_conv3,third_bias)
+		left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+	if(four_convs_per_block):
+		left_conv4=conv2d(left_out,fourth_convolution)
+		left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
+		left_out=tf.nn.bias_add(left_conv3,fourth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+	left_pool3=max_pool2d(left_out,'left_third_pool')
+	left_pool3_valid=max_pool2d(left_out_valid,'left_third_pool_valid')
 	
 	'''END UNCORRELATED'''
 
@@ -445,8 +520,12 @@ else :
 		first_bias=bias_variables([num_fourth_convolutions],'first_biases')
 		second_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'second_weights')
 		second_bias=bias_variables([num_fourth_convolutions],'second_biases')
-		third_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'third_weights')
-		third_bias=bias_variables([num_fourth_convolutions],'third_biases')
+		if(three_convs_per_block):
+			third_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'third_weights')
+			third_bias=bias_variables([num_fourth_convolutions],'third_biases')
+		if(four_convs_per_block):
+			fourth_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'fourth_weights')
+			fourth_bias=bias_variables([num_fourth_convolutions],'fourth_biases')
 		#end of definition
 
 		'''UNCORRELATED'''
@@ -465,15 +544,24 @@ else :
 		right_out=tf.nn.relu(right_out)
 		right_out_valid=tf.nn.relu(right_out_valid)
 		
-		# right_conv3=conv2d(right_out,third_convolution)
-		# right_conv3_valid=conv2d(right_out_valid,third_convolution)
-		# right_out=tf.nn.bias_add(right_conv3,third_bias)
-		# right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
-		# right_out=tf.nn.relu(right_out)
-		# right_out_valid=tf.nn.relu(right_out_valid)
-		
-		right_pool4=max_pool2d(right_out,'right_first_pool')
-		right_pool4_valid=max_pool2d(right_out_valid,'right_first_pool_valid')
+		if(three_convs_per_block):
+			right_conv3=conv2d(right_out,third_convolution)
+			right_conv3_valid=conv2d(right_out_valid,third_convolution)
+			right_out=tf.nn.bias_add(right_conv3,third_bias)
+			right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
+			right_out=tf.nn.relu(right_out)
+			right_out_valid=tf.nn.relu(right_out_valid)
+			
+		if(four_convs_per_block):
+			right_conv4=conv2d(right_out,fourth_convolution)
+			right_conv4_valid=conv2d(right_out_valid,fourth_convolution)
+			right_out=tf.nn.bias_add(right_conv4,fourth_bias)
+			right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
+			right_out=tf.nn.relu(right_out)
+			right_out_valid=tf.nn.relu(right_out_valid)
+			
+		right_pool4=max_pool2d(right_out,'right_fourth_pool')
+		right_pool4_valid=max_pool2d(right_out_valid,'right_fourth_pool_valid')
 		
 		#left side
 		left_conv1=conv2d(left_pool3,first_convolution)
@@ -490,15 +578,24 @@ else :
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)
 		
-		# left_conv3=conv2d(left_out,third_convolution)
-		# left_conv3_valid=conv2d(left_out_valid,third_convolution)
-		# left_out=tf.nn.bias_add(left_conv3,third_bias)
-		# left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
-		# left_out=tf.nn.relu(left_out)
-		# left_out_valid=tf.nn.relu(left_out_valid)
-		
-		left_pool4=max_pool2d(left_out,'left_first_pool')
-		left_pool4_valid=max_pool2d(left_out_valid,'left_first_pool_valid')
+		if(three_convs_per_block):
+			left_conv3=conv2d(left_out,third_convolution)
+			left_conv3_valid=conv2d(left_out_valid,third_convolution)
+			left_out=tf.nn.bias_add(left_conv3,third_bias)
+			left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
+			left_out=tf.nn.relu(left_out)
+			left_out_valid=tf.nn.relu(left_out_valid)
+			
+		if(four_convs_per_block):
+			left_conv4=conv2d(left_out,fourth_convolution)
+			left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
+			left_out=tf.nn.bias_add(left_conv3,fourth_bias)
+			left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+			left_out=tf.nn.relu(left_out)
+			left_out_valid=tf.nn.relu(left_out_valid)
+			
+		left_pool4=max_pool2d(left_out,'left_fourth_pool')
+		left_pool4_valid=max_pool2d(left_out_valid,'left_fourth_pool_valid')
 		'''END UNCORRELATED'''
 
 
@@ -506,7 +603,7 @@ else :
 	with tf.name_scope('first_fully_connected_layer'):
 
 		#definition of fully connected layer
-		#we get the product of the shape of the last pool to flatten it, here 40960
+		#we get the product of the shape of the last pool to flatten it
 		
 		'''CONCAT'''
 		pool4=tf.concat([left_pool4, right_pool4], 2)
