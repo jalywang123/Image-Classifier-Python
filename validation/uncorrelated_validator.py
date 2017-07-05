@@ -21,13 +21,13 @@ os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 #We define our session
 small_images=True
 
-three_convs_per_block=False
-four_convs_per_block=False
+three_convs_per_block=True
+four_convs_per_block=True
 if(four_convs_per_block):
 	three_convs_per_block=True
 	
 if(small_images):
-	ckpt=tf.train.get_checkpoint_state("../weights")
+	ckpt=tf.train.get_checkpoint_state("D:/classifier weights/weights")
 	evaluation="uncorrelated_evaluations_128x76.txt"
 	num_first_convolutions=16
 	num_second_convolutions=32
@@ -62,6 +62,7 @@ else:
     standard_deviation=tf.sqrt(variance)
 
 models=ckpt.all_model_checkpoint_paths[:]
+# models=["D:/classifier weights/weights/weights_iteration_500000.ckpt"]
 num_models=len(models)
 print("We are evaluating :",num_models)
 
@@ -513,11 +514,8 @@ with tf.name_scope('classifition_layer'):
 
 #We count the number or correct predictions
 correct_prediction_valid=tf.equal(tf.argmax(classification_valid,1), tf.argmax(validation_label,1))
-
 #We define our accuracy
-
 accuracy_valid=tf.reduce_mean(tf.cast(correct_prediction_valid,tf.float32))
-
 
 
 print("\n")
@@ -535,14 +533,15 @@ validation_images,validation_labels=read_and_decode(filename_validation_queue,va
 unnormalized_validation_images=validation_images
 #Normalization of data
 validation_images=tf.divide((tf.subtract(validation_images,mean)),standard_deviation)
+
 sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
 
 #We run our batch coordinator
 coord=tf.train.Coordinator()
 threads=tf.train.start_queue_runners(coord=coord)
-limit=100	
-# models=["./validation_weights/weights_iteration_890.ckpt"]
+limit=100
+
 for model in models : 
 	# if(len(models)>1):
 		# print("we stop because there are too many models")
