@@ -17,22 +17,25 @@ sess = tf.InteractiveSession()
 
 small_images=True
 three_convs_per_block=True
-four_convs_per_block=False
+four_convs_per_block=True
+# five_convs_per_block=False
 
 if(four_convs_per_block):
 	three_convs_per_block=True
-
+	
+if(four_convs_per_block):
+	three_convs_per_block=True
+	
 if(small_images):
 	#where we store and restore our model's weights
 	model_path="D:/classifier weights/weights/weights"
 	#where the tensorboard information is dumped
-	tensorboard_path="./tensorboard/prototype(3 convs per convblock)"
+	tensorboard_path="./tensorboard/prototype(4 convs per convblock)"
 	#where we fetch our training and validation data
 	tfrecords_file="D:/classifier data/data/original/train/train.tfrecords"
 	tfrecords_validation_file="D:/classifier data/data/original/valid/valid.tfrecords"
 	# tfrecords_file="overfitting_data/train/train.tfrecords"
 	# tfrecords_validation_file="overfitting_data/valid/valid.tfrecords"
-	
 	#convolution parameters
 	num_first_convolutions=16
 	num_second_convolutions=32
@@ -308,8 +311,8 @@ with tf.name_scope('Conv_Block_1'):
 	if(four_convs_per_block):
 		left_conv4=conv2d(left_out,fourth_convolution)
 		left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
-		left_out=tf.nn.bias_add(left_conv3,fourth_bias)
-		left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+		left_out=tf.nn.bias_add(left_conv4,fourth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)
 		
@@ -394,8 +397,8 @@ with tf.name_scope('Conv_Block_2'):
 	if(four_convs_per_block):
 		left_conv4=conv2d(left_out,fourth_convolution)
 		left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
-		left_out=tf.nn.bias_add(left_conv3,fourth_bias)
-		left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+		left_out=tf.nn.bias_add(left_conv4,fourth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)
 		
@@ -480,8 +483,8 @@ with tf.name_scope('Conv_Block_3'):
 	if(four_convs_per_block):
 		left_conv4=conv2d(left_out,fourth_convolution)
 		left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
-		left_out=tf.nn.bias_add(left_conv3,fourth_bias)
-		left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+		left_out=tf.nn.bias_add(left_conv4,fourth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)
 		
@@ -589,8 +592,8 @@ else :
 		if(four_convs_per_block):
 			left_conv4=conv2d(left_out,fourth_convolution)
 			left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
-			left_out=tf.nn.bias_add(left_conv3,fourth_bias)
-			left_out_valid=tf.nn.bias_add(left_conv3_valid,fourth_bias)
+			left_out=tf.nn.bias_add(left_conv4,fourth_bias)
+			left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
 			left_out=tf.nn.relu(left_out)
 			left_out_valid=tf.nn.relu(left_out_valid)
 			
