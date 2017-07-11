@@ -19,50 +19,39 @@ os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 #First we define some hyperparameters for our model#
 ####################################################
 #We define our session
-small_images=True
 
 three_convs_per_block=True
-four_convs_per_block=True
+four_convs_per_block=False
+five_convs_per_block=True
+full_view_convolution=True
+
 if(four_convs_per_block):
 	three_convs_per_block=True
 	
-if(small_images):
-	ckpt=tf.train.get_checkpoint_state("D:/classifier weights/weights")
-	evaluation="uncorrelated_evaluations_128x76.txt"
-	num_first_convolutions=16
-	num_second_convolutions=32
-	num_third_convolutions=32
-	num_first_fully=512
-	num_second_fully=256
-	tfrecords_validation_file="D:/classifier data/data/original/valid/valid.tfrecords"
-	input_height=76
-	input_width=256
-	uncorrelated_input_width=128
-	validation_batch=40
-	capacity=1
-	mean = tf.constant([91.97232819, 81.13652039, 91.6187439], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
-	variance=tf.constant([3352.71875,3293.62133789,3426.63623047], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_var')
-	standard_deviation=tf.sqrt(variance)
-else:
-    ckpt=tf.train.get_checkpoint_state("../weights")
-    evaluation="uncorrelated_evaluations_128x76.txt"
-    num_first_convolutions=16
-    num_second_convolutions=16
-    num_third_convolutions=32
-    num_fourth_convolutions=32
-    num_first_fully=1024
-    num_second_fully=512
-    tfrecords_validation_file="D:/classifier data/data/original/valid/valid.tfrecords"
-    input_height=170
-    input_width=512
-    validation_batch=20
-    capacity=1
-    mean = tf.constant([77.00479126, 75.57216644, 76.80247498], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
-    variance=tf.constant([2436.91015625,2331.30224609,2513.8762207], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_var')
-    standard_deviation=tf.sqrt(variance)
+if(five_convs_per_block):
+	three_convs_per_block=True
+	four_convs_per_block=True	
+	
+
+ckpt=tf.train.get_checkpoint_state("D:/classifier weights/weights")
+evaluation="uncorrelated_evaluations_128x76.txt"
+num_first_convolutions=16
+num_second_convolutions=32
+num_third_convolutions=32
+num_first_fully=512
+num_second_fully=256
+tfrecords_validation_file="D:/classifier data/data/original/valid/valid.tfrecords"
+input_height=76
+input_width=256
+uncorrelated_input_width=128
+validation_batch=40
+capacity=1
+mean = tf.constant([91.97232819, 81.13652039, 91.6187439], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
+variance=tf.constant([3352.71875,3293.62133789,3426.63623047], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_var')
+standard_deviation=tf.sqrt(variance)
 
 models=ckpt.all_model_checkpoint_paths[:]
-# models=["D:/classifier weights/weights/weights_iteration_500000.ckpt"]
+# models=["D:/classifier weights/weights/weights.ckpt"]
 num_models=len(models)
 print("We are evaluating :",num_models)
 
@@ -203,6 +192,9 @@ with tf.name_scope('Conv_Block_1'):
 	if(four_convs_per_block):
 		fourth_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'fourth_weights')
 		fourth_bias=bias_variables([num_first_convolutions],'fourth_biases')
+	if(five_convs_per_block):
+		fifth_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'fifth_weights')
+		fifth_bias=bias_variables([num_first_convolutions],'fifth_biases')
 	#end of definition
 
 	# definition of first block computation for training and validation
@@ -227,6 +219,11 @@ with tf.name_scope('Conv_Block_1'):
 		right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
 		right_out_valid=tf.nn.relu(right_out_valid)
 		
+	if(five_convs_per_block):
+		right_conv5_valid=conv2d(right_out_valid,fifth_convolution)
+		right_out_valid=tf.nn.bias_add(right_conv5_valid,fifth_bias)
+		right_out_valid=tf.nn.relu(right_out_valid)	
+		
 	right_pool1_valid=max_pool2d(right_out_valid,'right_first_pool_valid')
 	
 	#left side
@@ -248,6 +245,11 @@ with tf.name_scope('Conv_Block_1'):
 		left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
 		left_out_valid=tf.nn.relu(left_out_valid)
 		
+	if(five_convs_per_block):
+		left_conv5_valid=conv2d(left_out_valid,fifth_convolution)
+		left_out_valid=tf.nn.bias_add(left_conv5_valid,fifth_bias)
+		left_out_valid=tf.nn.relu(left_out_valid)	
+		
 	left_pool1_valid=max_pool2d(left_out_valid,'left_first_pool_valid')
 	'''END UNCORRELATED'''
     #end of definition
@@ -266,6 +268,9 @@ with tf.name_scope('Conv_Block_2'):
 	if(four_convs_per_block):
 		fourth_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'fourth_weights')
 		fourth_bias=bias_variables([num_second_convolutions],'fourth_biases')
+	if(five_convs_per_block):
+		fifth_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'fifth_weights')
+		fifth_bias=bias_variables([num_second_convolutions],'fifth_biases')
     #end of definition
     
     #definition of second block computation
@@ -290,6 +295,11 @@ with tf.name_scope('Conv_Block_2'):
 		right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
 		right_out_valid=tf.nn.relu(right_out_valid)
 		
+	if(five_convs_per_block):
+		right_conv5_valid=conv2d(right_out_valid,fifth_convolution)
+		right_out_valid=tf.nn.bias_add(right_conv5_valid,fifth_bias)
+		right_out_valid=tf.nn.relu(right_out_valid)	
+	
 	right_pool2_valid=max_pool2d(right_out_valid,'right_second_pool_valid')
 	
 	#left side
@@ -310,6 +320,12 @@ with tf.name_scope('Conv_Block_2'):
 		left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
 		left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
 		left_out_valid=tf.nn.relu(left_out_valid)
+	
+	if(five_convs_per_block):
+		left_conv5_valid=conv2d(left_out_valid,fifth_convolution)
+		left_out_valid=tf.nn.bias_add(left_conv5_valid,fifth_bias)
+		left_out_valid=tf.nn.relu(left_out_valid)	
+		
 		
 	left_pool2_valid=max_pool2d(left_out_valid,'left_second_pool_valid')
 	'''END UNCORRELATED'''
@@ -330,6 +346,9 @@ with tf.name_scope('Conv_Block_3'):
 	if(four_convs_per_block):
 		fourth_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'fourth_weights')
 		fourth_bias=bias_variables([num_third_convolutions],'fourth_biases')
+	if(five_convs_per_block):
+		fifth_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'fifth_weights')
+		fifth_bias=bias_variables([num_third_convolutions],'fifth_biases')
 	#end of definition
 
 	#definition of third block computation
@@ -351,6 +370,11 @@ with tf.name_scope('Conv_Block_3'):
 	if(four_convs_per_block):
 		right_conv4_valid=conv2d(right_out_valid,fourth_convolution)
 		right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
+		right_out_valid=tf.nn.relu(right_out_valid)	
+		
+	if(five_convs_per_block):
+		right_conv5_valid=conv2d(right_out_valid,fifth_convolution)
+		right_out_valid=tf.nn.bias_add(right_conv5_valid,fifth_bias)
 		right_out_valid=tf.nn.relu(right_out_valid)	
 	
 	right_pool3_valid=max_pool2d(right_out_valid,'right_third_pool_valid')
@@ -374,66 +398,38 @@ with tf.name_scope('Conv_Block_3'):
 		left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
 		left_out_valid=tf.nn.relu(left_out_valid)
 		
+	if(five_convs_per_block):
+		left_conv5_valid=conv2d(left_out_valid,fifth_convolution)
+		left_out_valid=tf.nn.bias_add(left_conv5_valid,fifth_bias)
+		left_out_valid=tf.nn.relu(left_out_valid)		
+		
 	left_pool3_valid=max_pool2d(left_out_valid,'left_third_pool_valid')
 	
 	'''END UNCORRELATED'''
     #end of definition
-if(small_images):
-	with tf.name_scope('first_fully_connected_layer'):
 
-		#definition of fully connected layer
-		#we get the product of the shape of the last pool to flatten it, here 40960
-		pool3_valid=tf.concat([left_pool3_valid, right_pool3_valid], 2)
-		
-		shape = int(np.prod(pool3_valid.get_shape()[1:]))   
-		
-		first_fc=weight_variables([shape,num_first_fully],'weights')
-		
-		first_fc_bias=bias_variables([num_first_fully],'bias')
-		
-		pool3_flat_valid=tf.reshape(pool3_valid,[-1,shape])
-		
-		fc1_valid=tf.nn.bias_add(tf.matmul(pool3_flat_valid,first_fc),first_fc_bias)
-		
-		fc1_valid=tf.nn.relu(fc1_valid)
-		#end of definition
-else:     
+if(full_view_convolution):
 	with tf.name_scope('Conv_Block_4'):
-
-		#definition of the weights for the fourth block
+		#definition of the weights for the third block
 		first_convolution=weight_variables([3,3,num_third_convolutions,num_fourth_convolutions],'first_weights')
 		first_bias=bias_variables([num_fourth_convolutions],'first_biases')
 		second_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'second_weights')
 		second_bias=bias_variables([num_fourth_convolutions],'second_biases')
-		if(three_convs_per_block):
-			third_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'third_weights')
-			third_bias=bias_variables([num_fourth_convolutions],'third_biases')
-		if(four_convs_per_block):
-			fourth_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'fourth_weights')
-			fourth_bias=bias_variables([num_fourth_convolutions],'fourth_biases')
-		#end of definition
-		
-		#definition of third block computation
-		'''UNCORRELATED'''
+		third_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'third_weights')
+		third_bias=bias_variables([num_fourth_convolutions],'third_biases')
+
 		#right side
 		right_conv1_valid=conv2d(right_pool3_valid,first_convolution)
 		right_out_valid=tf.nn.bias_add(right_conv1_valid,first_bias)
 		right_out_valid=tf.nn.relu(right_out_valid)
-		
+
 		right_conv2_valid=conv2d(right_out_valid,second_convolution)
 		right_out_valid=tf.nn.bias_add(right_conv2_valid,second_bias)
 		right_out_valid=tf.nn.relu(right_out_valid)
-		
-		if(three_convs_per_block):
-			right_conv3_valid=conv2d(right_out_valid,third_convolution)
-			right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
-			right_out_valid=tf.nn.relu(right_out_valid)
-		if(four_convs_per_block):
-			right_conv4_valid=conv2d(right_out_valid,fourth_convolution)
-			right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
-			right_out_valid=tf.nn.relu(right_out_valid)	
-		
-		right_pool4_valid=max_pool2d(right_out_valid,'right_fourth_pool_valid')
+
+		right_conv3_valid=conv2d(right_out_valid,third_convolution)
+		right_out_valid=tf.nn.bias_add(right_conv3_valid,third_bias)
+		right_out_valid=tf.nn.relu(right_out_valid)
 		
 		#left side
 		left_conv1_valid=conv2d(left_pool3_valid,first_convolution)
@@ -443,41 +439,40 @@ else:
 		left_conv2_valid=conv2d(left_out_valid,second_convolution)
 		left_out_valid=tf.nn.bias_add(left_conv2_valid,second_bias)
 		left_out_valid=tf.nn.relu(left_out_valid)
-		
-		if(three_convs_per_block):
-			left_conv3_valid=conv2d(left_out_valid,third_convolution)
-			left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
-			left_out_valid=tf.nn.relu(left_out_valid)
-			
-		if(four_convs_per_block):
-			left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
-			left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
-			left_out_valid=tf.nn.relu(left_out_valid)
-			
-			left_pool4_valid=max_pool2d(left_out_valid,'left_fourth_pool_valid')
-		'''END UNCORRELATED'''
-		#end of definition
-		
+	
+		left_conv3_valid=conv2d(left_out_valid,third_convolution)
+		left_out_valid=tf.nn.bias_add(left_conv3_valid,third_bias)
+		left_out_valid=tf.nn.relu(left_out_valid)
+	
+	
+with tf.name_scope('first_fully_connected_layer'):
 
-	with tf.name_scope('first_fully_connected_layer'):
-
-		#definition of fully connected layer
-		#we get the product of the shape of the last pool to flatten it
-		
-		pool4_valid=tf.concat([left_pool4_valid, right_pool4_valid], 2)
-		
+	#definition of fully connected layer
+	#we get the product of the shape of the last pool to flatten it, here 40960
+	'''CONCAT'''
+	if(full_view_convolution):
+		pool4_valid=tf.concat([left_out_valid, right_out_valid], 2)
+		'''END OF CONCAT'''
 		shape = int(np.prod(pool4_valid.get_shape()[1:]))   
-		
 		first_fc=weight_variables([shape,num_first_fully],'weights')
-		
 		first_fc_bias=bias_variables([num_first_fully],'bias')
-		
 		pool4_flat_valid=tf.reshape(pool4_valid,[-1,shape])
-		
 		fc1_valid=tf.nn.bias_add(tf.matmul(pool4_flat_valid,first_fc),first_fc_bias)
+		fc1_valid=tf.nn.relu(fc1_valid)
 		
+	else:
+		#definition of fully connected layer
+		#we get the product of the shape of the last pool to flatten it, here 40960
+		pool3_valid=tf.concat([left_pool3_valid, right_pool3_valid], 2)
+		'''END OF CONCAT'''
+		shape = int(np.prod(pool3_valid.get_shape()[1:]))   
+		first_fc=weight_variables([shape,num_first_fully],'weights')
+		first_fc_bias=bias_variables([num_first_fully],'bias')
+		pool3_flat_valid=tf.reshape(pool3_valid,[-1,shape])
+		fc1_valid=tf.nn.bias_add(tf.matmul(pool3_flat_valid,first_fc),first_fc_bias)
 		fc1_valid=tf.nn.relu(fc1_valid)
 		#end of definition
+	
 
 with tf.name_scope('second_fully_connected_layer'):
 
@@ -586,6 +581,7 @@ for model in models :
 		start=time.time()
 		
 		(validation_left_image_batch,validation_right_image_batch)=np.split(normallized_images,2,axis=2)
+		
 		
 		acc_val,classif_valid,so_valid=sess.run([accuracy_valid,classification_valid,soft_valid],feed_dict={
 		right_validation_data:validation_right_image_batch,
