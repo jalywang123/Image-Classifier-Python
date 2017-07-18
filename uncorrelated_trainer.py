@@ -19,6 +19,8 @@ three_convs_per_block=True
 four_convs_per_block=True
 five_convs_per_block=True
 full_view_convolution=True
+more_convs=True
+eight_convs_per_block=True
 
 if(four_convs_per_block):
 	three_convs_per_block=True
@@ -30,7 +32,7 @@ if(five_convs_per_block):
 #where we store and restore our model's weights
 model_path="D:/classifier weights/weights/weights"
 #where the tensorboard information is dumped
-tensorboard_path="./tensorboard/full_view"
+tensorboard_path="./tensorboard/8_convs_per_conv_then_8_convs"
 #where we fetch our training and validation data
 tfrecords_file="D:/classifier data/data/original+reversed/train/train.tfrecords"
 tfrecords_validation_file="D:/classifier data/data/original+reversed/valid/valid.tfrecords"
@@ -212,6 +214,13 @@ with tf.name_scope('Conv_Block_1'):
 	if(five_convs_per_block):
 		fifth_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'fifth_weights')
 		fifth_bias=bias_variables([num_first_convolutions],'fifth_biases')
+	if(eight_convs_per_block):
+		sixth_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'sixth_weights')
+		sixth_bias=bias_variables([num_first_convolutions],'sixth_biases')
+		seventh_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'seventh_weights')
+		seventh_bias=bias_variables([num_first_convolutions],'seventh_biases')
+		eighth_convolution=weight_variables([3,3,num_first_convolutions,num_first_convolutions],'eighth_weights')
+		eighth_bias=bias_variables([num_first_convolutions],'eighth_biases')
 	#end of definition
 	
 	'''UNCORRELATED'''
@@ -253,7 +262,28 @@ with tf.name_scope('Conv_Block_1'):
 		right_out_valid=tf.nn.bias_add(right_conv5_valid,fifth_bias)
 		right_out=tf.nn.relu(right_out)
 		right_out_valid=tf.nn.relu(right_out_valid)
-	
+		
+	if(eight_convs_per_block):
+		right_conv6=conv2d(right_out,sixth_convolution)
+		right_conv6_valid=conv2d(right_out_valid,sixth_convolution)
+		right_out=tf.nn.bias_add(right_conv6,sixth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv6_valid,sixth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+		right_conv7=conv2d(right_out,seventh_convolution)
+		right_conv7_valid=conv2d(right_out_valid,seventh_convolution)
+		right_out=tf.nn.bias_add(right_conv7,seventh_bias)
+		right_out_valid=tf.nn.bias_add(right_conv7_valid,seventh_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+		right_conv8=conv2d(right_out,eighth_convolution)
+		right_conv8_valid=conv2d(right_out_valid,eighth_convolution)
+		right_out=tf.nn.bias_add(right_conv8,eighth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv8_valid,eighth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
 		
 	right_pool1=max_pool2d(right_out,'right_first_pool')
 	right_pool1_valid=max_pool2d(right_out_valid,'right_first_pool_valid')
@@ -296,7 +326,29 @@ with tf.name_scope('Conv_Block_1'):
 		left_out_valid=tf.nn.bias_add(left_conv5_valid,fifth_bias)
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)	
+	
+	if(eight_convs_per_block):
+		left_conv6=conv2d(left_out,sixth_convolution)
+		left_conv6_valid=conv2d(left_out_valid,sixth_convolution)
+		left_out=tf.nn.bias_add(left_conv6,sixth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv6_valid,sixth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
 		
+		left_conv7=conv2d(left_out,seventh_convolution)
+		left_conv7_valid=conv2d(left_out_valid,seventh_convolution)
+		left_out=tf.nn.bias_add(left_conv7,seventh_bias)
+		left_out_valid=tf.nn.bias_add(left_conv7_valid,seventh_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+		left_conv8=conv2d(left_out,eighth_convolution)
+		left_conv8_valid=conv2d(left_out_valid,eighth_convolution)
+		left_out=tf.nn.bias_add(left_conv8,eighth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv8_valid,eighth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+	
 	left_pool1=max_pool2d(left_out,'left_first_pool')
 	left_pool1_valid=max_pool2d(left_out_valid,'left_first_pool_valid')
 	'''END UNCORRELATED'''
@@ -318,6 +370,13 @@ with tf.name_scope('Conv_Block_2'):
 	if(five_convs_per_block):
 		fifth_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'fifth_weights')
 		fifth_bias=bias_variables([num_second_convolutions],'fifth_biases')
+	if(eight_convs_per_block):
+		sixth_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'sixth_weights')
+		sixth_bias=bias_variables([num_second_convolutions],'sixth_biases')
+		seventh_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'seventh_weights')
+		seventh_bias=bias_variables([num_second_convolutions],'seventh_biases')
+		eighth_convolution=weight_variables([3,3,num_second_convolutions,num_second_convolutions],'eighth_weights')
+		eighth_bias=bias_variables([num_second_convolutions],'eighth_biases')
 	#end of definition
 
 	'''UNCORRELATED'''
@@ -359,6 +418,28 @@ with tf.name_scope('Conv_Block_2'):
 		right_out_valid=tf.nn.bias_add(right_conv5_valid,fifth_bias)
 		right_out=tf.nn.relu(right_out)
 		right_out_valid=tf.nn.relu(right_out_valid)	
+	
+	if(eight_convs_per_block):
+		right_conv6=conv2d(right_out,sixth_convolution)
+		right_conv6_valid=conv2d(right_out_valid,sixth_convolution)
+		right_out=tf.nn.bias_add(right_conv6,sixth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv6_valid,sixth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+		right_conv7=conv2d(right_out,seventh_convolution)
+		right_conv7_valid=conv2d(right_out_valid,seventh_convolution)
+		right_out=tf.nn.bias_add(right_conv7,seventh_bias)
+		right_out_valid=tf.nn.bias_add(right_conv7_valid,seventh_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+		right_conv8=conv2d(right_out,eighth_convolution)
+		right_conv8_valid=conv2d(right_out_valid,eighth_convolution)
+		right_out=tf.nn.bias_add(right_conv8,eighth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv8_valid,eighth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
 		
 	right_pool2=max_pool2d(right_out,'right_second_pool')
 	right_pool2_valid=max_pool2d(right_out_valid,'right_second_pool_valid')
@@ -402,6 +483,28 @@ with tf.name_scope('Conv_Block_2'):
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)
 	
+	if(eight_convs_per_block):
+		left_conv6=conv2d(left_out,sixth_convolution)
+		left_conv6_valid=conv2d(left_out_valid,sixth_convolution)
+		left_out=tf.nn.bias_add(left_conv6,sixth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv6_valid,sixth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+		left_conv7=conv2d(left_out,seventh_convolution)
+		left_conv7_valid=conv2d(left_out_valid,seventh_convolution)
+		left_out=tf.nn.bias_add(left_conv7,seventh_bias)
+		left_out_valid=tf.nn.bias_add(left_conv7_valid,seventh_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+		left_conv8=conv2d(left_out,eighth_convolution)
+		left_conv8_valid=conv2d(left_out_valid,eighth_convolution)
+		left_out=tf.nn.bias_add(left_conv8,eighth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv8_valid,eighth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+	
 	left_pool2=max_pool2d(left_out,'left_second_pool')
 	left_pool2_valid=max_pool2d(left_out_valid,'left_second_pool_valid')
 	'''END UNCORRELATED'''
@@ -423,6 +526,13 @@ with tf.name_scope('Conv_Block_3'):
 	if(five_convs_per_block):
 		fifth_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'fifth_weights')
 		fifth_bias=bias_variables([num_third_convolutions],'fifth_biases')
+	if(eight_convs_per_block):
+		sixth_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'sixth_weights')
+		sixth_bias=bias_variables([num_third_convolutions],'sixth_biases')
+		seventh_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'seventh_weights')
+		seventh_bias=bias_variables([num_third_convolutions],'seventh_biases')
+		eighth_convolution=weight_variables([3,3,num_third_convolutions,num_third_convolutions],'eighth_weights')
+		eighth_bias=bias_variables([num_third_convolutions],'eighth_biases')
 	#end of definition
 	
 	'''UNCORRELATED'''
@@ -464,7 +574,29 @@ with tf.name_scope('Conv_Block_3'):
 		right_out_valid=tf.nn.bias_add(right_conv5_valid,fifth_bias)
 		right_out=tf.nn.relu(right_out)
 		right_out_valid=tf.nn.relu(right_out_valid)	
+	
+	if(eight_convs_per_block):
+		right_conv6=conv2d(right_out,sixth_convolution)
+		right_conv6_valid=conv2d(right_out_valid,sixth_convolution)
+		right_out=tf.nn.bias_add(right_conv6,sixth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv6_valid,sixth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
 		
+		right_conv7=conv2d(right_out,seventh_convolution)
+		right_conv7_valid=conv2d(right_out_valid,seventh_convolution)
+		right_out=tf.nn.bias_add(right_conv7,seventh_bias)
+		right_out_valid=tf.nn.bias_add(right_conv7_valid,seventh_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+		
+		right_conv8=conv2d(right_out,eighth_convolution)
+		right_conv8_valid=conv2d(right_out_valid,eighth_convolution)
+		right_out=tf.nn.bias_add(right_conv8,eighth_bias)
+		right_out_valid=tf.nn.bias_add(right_conv8_valid,eighth_bias)
+		right_out=tf.nn.relu(right_out)
+		right_out_valid=tf.nn.relu(right_out_valid)
+	
 	right_pool3=max_pool2d(right_out,'right_third_pool')
 	right_pool3_valid=max_pool2d(right_out_valid,'right_third_pool_valid')
 	
@@ -506,7 +638,29 @@ with tf.name_scope('Conv_Block_3'):
 		left_out_valid=tf.nn.bias_add(left_conv5_valid,fifth_bias)
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)	
+	
+	if(eight_convs_per_block):
+		left_conv6=conv2d(left_out,sixth_convolution)
+		left_conv6_valid=conv2d(left_out_valid,sixth_convolution)
+		left_out=tf.nn.bias_add(left_conv6,sixth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv6_valid,sixth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
 		
+		left_conv7=conv2d(left_out,seventh_convolution)
+		left_conv7_valid=conv2d(left_out_valid,seventh_convolution)
+		left_out=tf.nn.bias_add(left_conv7,seventh_bias)
+		left_out_valid=tf.nn.bias_add(left_conv7_valid,seventh_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+		
+		left_conv8=conv2d(left_out,eighth_convolution)
+		left_conv8_valid=conv2d(left_out_valid,eighth_convolution)
+		left_out=tf.nn.bias_add(left_conv8,eighth_bias)
+		left_out_valid=tf.nn.bias_add(left_conv8_valid,eighth_bias)
+		left_out=tf.nn.relu(left_out)
+		left_out_valid=tf.nn.relu(left_out_valid)
+	
 	left_pool3=max_pool2d(left_out,'left_third_pool')
 	left_pool3_valid=max_pool2d(left_out_valid,'left_third_pool_valid')
 	
@@ -521,6 +675,18 @@ if(full_view_convolution):
 		second_bias=bias_variables([num_fourth_convolutions],'second_biases')
 		third_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'third_weights')
 		third_bias=bias_variables([num_fourth_convolutions],'third_biases')
+		if(more_convs):
+			fourth_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'fourth_weights')
+			fourth_bias=bias_variables([num_fourth_convolutions],'fourth_biases')
+			fifth_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'fifth_weights')
+			fifth_bias=bias_variables([num_fourth_convolutions],'fifth_biases')
+		if(eight_convs_per_block):
+			sixth_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'sixth_weights')
+			sixth_bias=bias_variables([num_fourth_convolutions],'sixth_biases')
+			seventh_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'seventh_weights')
+			seventh_bias=bias_variables([num_fourth_convolutions],'seventh_biases')
+			eighth_convolution=weight_variables([3,3,num_fourth_convolutions,num_fourth_convolutions],'eighth_weights')
+			eighth_bias=bias_variables([num_fourth_convolutions],'eighth_biases')
 
 		#right side
 		right_conv1=conv2d(right_pool3,first_convolution)
@@ -544,6 +710,43 @@ if(full_view_convolution):
 		right_out=tf.nn.relu(right_out)
 		right_out_valid=tf.nn.relu(right_out_valid)
 		
+		if(more_convs):
+			right_conv4=conv2d(right_out,fourth_convolution)
+			right_conv4_valid=conv2d(right_out_valid,fourth_convolution)
+			right_out=tf.nn.bias_add(right_conv4,fourth_bias)
+			right_out_valid=tf.nn.bias_add(right_conv4_valid,fourth_bias)
+			right_out=tf.nn.relu(right_out)
+			right_out_valid=tf.nn.relu(right_out_valid)
+			
+			right_conv5=conv2d(right_out,fifth_convolution)
+			right_conv5_valid=conv2d(right_out_valid,fifth_convolution)
+			right_out=tf.nn.bias_add(right_conv5,fifth_bias)
+			right_out_valid=tf.nn.bias_add(right_conv5_valid,fifth_bias)
+			right_out=tf.nn.relu(right_out)
+			right_out_valid=tf.nn.relu(right_out_valid)
+		
+		if(eight_convs_per_block):
+			right_conv6=conv2d(right_out,sixth_convolution)
+			right_conv6_valid=conv2d(right_out_valid,sixth_convolution)
+			right_out=tf.nn.bias_add(right_conv6,sixth_bias)
+			right_out_valid=tf.nn.bias_add(right_conv6_valid,sixth_bias)
+			right_out=tf.nn.relu(right_out)
+			right_out_valid=tf.nn.relu(right_out_valid)
+			
+			right_conv7=conv2d(right_out,seventh_convolution)
+			right_conv7_valid=conv2d(right_out_valid,seventh_convolution)
+			right_out=tf.nn.bias_add(right_conv7,seventh_bias)
+			right_out_valid=tf.nn.bias_add(right_conv7_valid,seventh_bias)
+			right_out=tf.nn.relu(right_out)
+			right_out_valid=tf.nn.relu(right_out_valid)
+			
+			right_conv8=conv2d(right_out,eighth_convolution)
+			right_conv8_valid=conv2d(right_out_valid,eighth_convolution)
+			right_out=tf.nn.bias_add(right_conv8,eighth_bias)
+			right_out_valid=tf.nn.bias_add(right_conv8_valid,eighth_bias)
+			right_out=tf.nn.relu(right_out)
+			right_out_valid=tf.nn.relu(right_out_valid)
+			
 		#left side
 		left_conv1=conv2d(left_pool3,first_convolution)
 		left_conv1_valid=conv2d(left_pool3_valid,first_convolution)
@@ -566,6 +769,42 @@ if(full_view_convolution):
 		left_out=tf.nn.relu(left_out)
 		left_out_valid=tf.nn.relu(left_out_valid)
 		
+		if(more_convs):
+			left_conv4=conv2d(left_out,fourth_convolution)
+			left_conv4_valid=conv2d(left_out_valid,fourth_convolution)
+			left_out=tf.nn.bias_add(left_conv4,fourth_bias)
+			left_out_valid=tf.nn.bias_add(left_conv4_valid,fourth_bias)
+			left_out=tf.nn.relu(left_out)
+			left_out_valid=tf.nn.relu(left_out_valid)
+			
+			left_conv5=conv2d(left_out,fifth_convolution)
+			left_conv5_valid=conv2d(left_out_valid,fifth_convolution)
+			left_out=tf.nn.bias_add(left_conv5,fifth_bias)
+			left_out_valid=tf.nn.bias_add(left_conv5_valid,fifth_bias)
+			left_out=tf.nn.relu(left_out)
+			left_out_valid=tf.nn.relu(left_out_valid)
+		
+		if(eight_convs_per_block):
+			left_conv6=conv2d(left_out,sixth_convolution)
+			left_conv6_valid=conv2d(left_out_valid,sixth_convolution)
+			left_out=tf.nn.bias_add(left_conv6,sixth_bias)
+			left_out_valid=tf.nn.bias_add(left_conv6_valid,sixth_bias)
+			left_out=tf.nn.relu(left_out)
+			left_out_valid=tf.nn.relu(left_out_valid)
+			
+			left_conv7=conv2d(left_out,seventh_convolution)
+			left_conv7_valid=conv2d(left_out_valid,seventh_convolution)
+			left_out=tf.nn.bias_add(left_conv7,seventh_bias)
+			left_out_valid=tf.nn.bias_add(left_conv7_valid,seventh_bias)
+			left_out=tf.nn.relu(left_out)
+			left_out_valid=tf.nn.relu(left_out_valid)
+			
+			left_conv8=conv2d(left_out,eighth_convolution)
+			left_conv8_valid=conv2d(left_out_valid,eighth_convolution)
+			left_out=tf.nn.bias_add(left_conv8,eighth_bias)
+			left_out_valid=tf.nn.bias_add(left_conv8_valid,eighth_bias)
+			left_out=tf.nn.relu(left_out)
+			left_out_valid=tf.nn.relu(left_out_valid)
 
 with tf.name_scope('first_fully_connected_layer'):
 
@@ -674,6 +913,8 @@ print("We are using the validation tfrecord file : %s"%(tfrecords_validation_fil
 print("Information for the tensorboard is being dumped in %s"%(tensorboard_path))
 print("Weights are being saved in %s"%(model_path))
 print("We will be running %d iterations"%(num_iterations))
+print("We will be using a learning rate of : %f"%(learning_rate))
+print("We will be using a dropout of : %f"%(keep_probability))
 print("\n"*2)
 
 #First we check if there is a model, if so, we restore it
