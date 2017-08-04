@@ -139,6 +139,7 @@ def preproc(imagePath1, imagePath2=""):
 		image_3
 	except NameError:
 		print("We could not merge the two images for some reason")
+		print("Make sure that your input images have the correct size")
 	else:	
 		return image_3
 	
