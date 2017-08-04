@@ -18,7 +18,7 @@ sess = tf.InteractiveSession()
 #where we store and restore our model's weights
 model_path="D:/classifier weights/weights/weights"
 #where the tensorboard information is dumped
-tensorboard_path="./tensorboard/refactored"
+tensorboard_path="./tensorboard/9_convs_per_conv_then_9_convs/32_filters"
 #where we fetch our training and validation data
 tfrecords_file="D:/classifier data/data/original+reversed+flipped/train/train.tfrecords"
 tfrecords_validation_file="D:/classifier data/data/original+reversed+flipped/valid/valid.tfrecords"
@@ -28,7 +28,7 @@ tfrecords_validation_file="D:/classifier data/data/original+reversed+flipped/val
 # tfrecords_validation_file="overfitting_data/valid/valid.tfrecords"
 
 #convolution parameters
-num_first_convolutions=16
+num_first_convolutions=32
 num_second_convolutions=32
 num_third_convolutions=32
 num_fourth_convolutions=32
@@ -41,7 +41,7 @@ input_width=256
 #separated image widths
 uncorrelated_input_width=128
 #After a certain number of iterations we save the model
-weight_saver=5000
+weight_saver=500
 #Batch sizes
 batch_size=20
 validation_batch=20
@@ -50,14 +50,14 @@ capacity=20
 #we do not use dropout for our validation
 keep_probability=0.5
 #Optimization scheme parameters
-learning_rate=1e-4
+learning_rate=1e-5
 momentum=0.9
 #Dumping information to tensorboard or not
 model_information=True
 num_classes=2
 
 #Number of iterations
-info_dump=100
+info_dump=1000
 num_iterations=3000000
 
 
@@ -124,9 +124,11 @@ def create_convolutions(num_input_filters, num_output_filters):
 	seventh_bias=bias_variables([num_output_filters],'seventh_biases')
 	eighth_convolution=weight_variables([3,3,num_output_filters,num_output_filters],'eighth_weights')
 	eighth_bias=bias_variables([num_output_filters],'eighth_biases')
+	ninth_convolution=weight_variables([3,3,num_output_filters,num_output_filters],'ninth_weights')
+	ninth_bias=bias_variables([num_output_filters],'ninth_biases')
 	#end of definition
 	return(first_convolution,first_bias,second_convolution,second_bias,third_convolution,third_bias,fourth_convolution,fourth_bias,
-	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias)
+	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias,ninth_convolution,ninth_bias)
 
 ##############################################################
 #Function that computes convolutions for left and right input#
@@ -189,6 +191,13 @@ def convolution_computation(right_input,left_input,right_validation_input,left_v
 	right_out=tf.nn.relu(right_out)
 	right_out_valid=tf.nn.relu(right_out_valid)	
 	
+	right_conv9=conv2d(right_out,ninth_convolution)
+	right_conv9_valid=conv2d(right_out_valid,ninth_convolution)
+	right_out=tf.nn.bias_add(right_conv9,ninth_bias)
+	right_out_valid=tf.nn.bias_add(right_conv9_valid,ninth_bias)
+	right_out=tf.nn.relu(right_out)
+	right_out_valid=tf.nn.relu(right_out_valid)
+	
 	#left side
 	left_conv1=conv2d(left_input,first_convolution)
 	left_conv1_valid=conv2d(left_validation_input,first_convolution)
@@ -243,6 +252,13 @@ def convolution_computation(right_input,left_input,right_validation_input,left_v
 	left_conv8_valid=conv2d(left_out_valid,eighth_convolution)
 	left_out=tf.nn.bias_add(left_conv8,eighth_bias)
 	left_out_valid=tf.nn.bias_add(left_conv8_valid,eighth_bias)
+	left_out=tf.nn.relu(left_out)
+	left_out_valid=tf.nn.relu(left_out_valid)
+	
+	left_conv9=conv2d(left_out,ninth_convolution)
+	left_conv9_valid=conv2d(left_out_valid,ninth_convolution)
+	left_out=tf.nn.bias_add(left_conv9,ninth_bias)
+	left_out_valid=tf.nn.bias_add(left_conv9_valid,ninth_bias)
 	left_out=tf.nn.relu(left_out)
 	left_out_valid=tf.nn.relu(left_out_valid)
 	
@@ -342,7 +358,7 @@ with tf.name_scope('Conv_Block_1'):
 
 	#definition of the weights for the first block
 	(first_convolution,first_bias,second_convolution,second_bias,third_convolution,third_bias,fourth_convolution,fourth_bias,
-	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias)=create_convolutions(3, num_first_convolutions)
+	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias,ninth_convolution,ninth_bias)=create_convolutions(3, num_first_convolutions)
 	#end of definition
 	
 	#convolution computation
@@ -360,7 +376,7 @@ with tf.name_scope('Conv_Block_2'):
 
 	#definition of the weights for the second block
 	(first_convolution,first_bias,second_convolution,second_bias,third_convolution,third_bias,fourth_convolution,fourth_bias,
-	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias)=create_convolutions(num_first_convolutions, num_second_convolutions)
+	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias,ninth_convolution,ninth_bias)=create_convolutions(num_first_convolutions, num_second_convolutions)
 	#end of definition
 
 	#convolution computation
@@ -378,7 +394,7 @@ with tf.name_scope('Conv_Block_3'):
 
 	#definition of the weights for the third block
 	(first_convolution,first_bias,second_convolution,second_bias,third_convolution,third_bias,fourth_convolution,fourth_bias,
-	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias)=create_convolutions(num_second_convolutions, num_third_convolutions)
+	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias,ninth_convolution,ninth_bias)=create_convolutions(num_second_convolutions, num_third_convolutions)
 	#end of definition
 	
 	#convolution computation
@@ -396,7 +412,7 @@ with tf.name_scope('Conv_Block_3'):
 with tf.name_scope('Conv_Block_4'):
 	#definition of the weights for the third block
 	(first_convolution,first_bias,second_convolution,second_bias,third_convolution,third_bias,fourth_convolution,fourth_bias,
-	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias)=create_convolutions(num_third_convolutions, num_fourth_convolutions)
+	fifth_convolution,fifth_bias,sixth_convolution,sixth_bias,seventh_convolution,seventh_bias,eighth_convolution,eighth_bias,ninth_convolution,ninth_bias)=create_convolutions(num_third_convolutions, num_fourth_convolutions)
 	#end of definition
 	
 	#convolution computation
@@ -566,11 +582,12 @@ for i in range(num_iterations):
 	# if(model_information):
 		# mixed_writer.add_summary(summary,i)
 
+
+######################
+#We close everything #
+######################
 coord.request_stop()
 coord.join(threads)
-#########################################
-#We save the best snapchat of the model #
-#########################################
 print("")
 print("The Learning Process has been achieved.....")
 print("")
